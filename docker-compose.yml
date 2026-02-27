@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: web4pay
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d web4pay"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    image: node:22-alpine
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      API_KEYS: "dev-token-1"
+      DATABASE_URL: "postgres://postgres:postgres@db:5432/web4pay"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+    command: >
+      sh -lc "
+        corepack enable &&
+        pnpm -w install &&
+        psql \"$DATABASE_URL\" -f db/migrations/0001_init.sql &&
+        pnpm --filter @web4pay/api dev
+      "
+
+volumes:
+  db_data:

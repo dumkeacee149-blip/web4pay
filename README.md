@@ -15,7 +15,23 @@ OpenAPI (draft): `spec/openapi.v1.yaml`
 Postgres schema migration: `db/migrations/0001_init.sql`
 
 ## Suggested next steps
-1) Implement a minimal API service (Fastify/Nest/Next API) that matches the OpenAPI.
+1) Run the local stack with Docker Compose (Postgres + API).
 2) Deploy Escrow contract on Base + configure USDC address.
 3) Build watcher service to index onchain events and update escrow states.
 4) Add worker queue for tx execution + webhook delivery retries.
+
+## Local dev (Docker)
+
+```bash
+docker compose up --build
+```
+
+- API: http://localhost:3000
+- Default API key (from docker-compose): `dev-token-1`
+
+Test:
+
+```bash
+curl -s http://localhost:3000/v1/chain \
+  -H 'Authorization: Bearer dev-token-1'
+```
