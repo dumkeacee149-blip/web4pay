@@ -38,6 +38,13 @@ docker compose up --build
 - API: http://localhost:3000
 - Default API key (from docker-compose): `dev-token-1`
 
+By default `ONCHAIN_ENABLED` is off (`0`), so `/v1/escrows` runs in mock mode.
+
+A lightweight watcher is included (`watcher` service) to settle mocked on-chain state:
+- `TX_PENDING_DEPOSIT -> DEPOSITED`
+- `TX_PENDING_RELEASE -> RELEASED`
+- `TX_PENDING_REFUND -> REFUNDED`
+
 Test:
 
 ```bash

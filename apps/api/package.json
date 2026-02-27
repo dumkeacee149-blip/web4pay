@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "watcher": "tsx watch src/watcher.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
