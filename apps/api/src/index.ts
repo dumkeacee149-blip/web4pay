@@ -52,13 +52,15 @@ async function main() {
 
   // GET /v1/chain
   app.get("/v1/chain", async () => {
+    const escrow = process.env.ESCROW_ADDRESS?.trim() || "0x0000000000000000000000000000000000000000";
+    const usdc = process.env.USDC_ADDRESS?.trim() || "0x0000000000000000000000000000000000000000";
     return {
       chainId: 8453,
       name: "base",
       currency: "USDC",
       contracts: {
-        escrow: "0x0000000000000000000000000000000000000000",
-        usdc: "0x0000000000000000000000000000000000000000",
+        escrow,
+        usdc,
       },
     };
   });
@@ -239,8 +241,31 @@ async function main() {
         throw new ApiError(500, "Missing payer wallet", { code: "internal" });
       }
 
-      const escrowIdOnchain = randomUint64String();
-      const txHash = randomTxHash();
+      // Default: mock tx
+      let onchainEscrowId = randomUint64String();
+      let txHash = randomTxHash();
+
+      if (config.onchainEnabled) {
+        const { loadChainConfig, makeClients } = await import("./onchain");
+        const { createDealApproveDeposit } = await import("./onchain_escrow");
+
+        const chainCfg = loadChainConfig();
+        const { publicClient, walletClient } = makeClients(chainCfg);
+
+        const { dealId, txHash: depositTx } = await createDealApproveDeposit({
+          publicClient,
+          walletClient,
+          escrowAddress: chainCfg.escrowAddress,
+          usdcAddress: chainCfg.usdcAddress,
+          payeeAddress: q.payee_address as any,
+          amountDecimal: q.amount_numeric,
+          deadlineAt: new Date(q.deadline_at),
+          quoteId: quoteIdRaw,
+        });
+
+        onchainEscrowId = dealId.toString(10);
+        txHash = depositTx;
+      }
 
       const inserted = await pool.query<{ id: string }>(
         "insert into escrows (tenant_id, quote_id, payer_address, payee_address, amount_numeric, currency, status, onchain_escrow_id, deposit_tx_hash, deadline_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id",
@@ -252,7 +277,7 @@ async function main() {
           q.amount_numeric,
           q.currency,
           "TX_PENDING_DEPOSIT",
-          escrowIdOnchain,
+          onchainEscrowId,
           txHash,
           q.deadline_at,
         ],

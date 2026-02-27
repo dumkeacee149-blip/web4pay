@@ -12,7 +12,8 @@
     "dotenv": "^16.4.7",
     "fastify": "^4.29.0",
     "fastify-plugin": "^5.1.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "viem": "^2.23.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

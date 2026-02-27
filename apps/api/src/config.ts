@@ -4,6 +4,8 @@ export interface AppConfig {
   port: number;
   databaseUrl: string;
   apiKeys: Set<string>;
+  /** If true, /v1/escrows will submit onchain txs. */
+  onchainEnabled: boolean;
 }
 
 export function loadConfig(): AppConfig {
@@ -28,9 +30,12 @@ export function loadConfig(): AppConfig {
     throw new Error(`Invalid PORT value: ${rawPort}`);
   }
 
+  const onchainEnabled = (process.env.ONCHAIN_ENABLED ?? "").trim() === "1";
+
   return {
     port,
     databaseUrl,
     apiKeys,
+    onchainEnabled,
   };
 }
