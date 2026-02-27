@@ -1,7 +1,9 @@
 :root {
+  --ui-font: "Press Start 2P", "VT323", "Trebuchet MS", "Verdana", sans-serif;
   --neon-pink: #ff59d5;
   --neon-cyan: #4ef0ff;
   --neon-green: #56ff9f;
+  --grid-line: rgba(79, 255, 191, 0.10);
   --bg: #102027;
   --panel: #1c2430;
   --ink: #e8f7ff;
@@ -16,11 +18,13 @@
 
 body {
   margin: 0;
-  font-family: "Trebuchet MS", "Verdana", sans-serif;
+  font-family: var(--ui-font);
   background:
-    radial-gradient(circle at 20% 10%, rgba(59, 231, 255, 0.15), transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(255, 90, 183, 0.12), transparent 35%),
-    linear-gradient(180deg, #0b141d, #0f1822 40%, #101822);
+    radial-gradient(circle at 8% 12%, rgba(79, 255, 191, 0.2), transparent 35%),
+    radial-gradient(circle at 90% 88%, rgba(78, 240, 255, 0.15), transparent 35%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 56px),
+    linear-gradient(180deg, #070f16, #0d1520 38%, #101a26);
   color: var(--ink);
   min-height: 100vh;
   padding: 16px;
@@ -39,7 +43,8 @@ body {
     rgba(255,255,255,0) 3px
   );
   mix-blend-mode: overlay;
-  opacity: .25;
+  opacity: .22;
+  animation: scanFlicker 6s steps(2) infinite;
 }
 
 
@@ -65,6 +70,7 @@ body {
 }
 
 .hero {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -106,8 +112,9 @@ body {
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(17,27,37,0.95), rgba(12,18,27,0.98));
-  border: 4px solid #5fd9ff;
+  background: linear-gradient(180deg, rgba(12, 19, 29, 0.95), rgba(9, 15, 24, 0.98));
+  border: 4px solid #57f3a5;
+  box-shadow: 0 0 0 2px #0a1f2a, 0 0 0 1px #0f2f42 inset, 0 0 20px rgba(87, 243, 165, 0.18);
   box-shadow: 4px 4px 0 rgba(0,0,0,0.4), 0 0 0 2px #0f1927 inset;
   padding: 14px;
   border-radius: 4px;
@@ -123,7 +130,7 @@ body {
 .card h2 {
   margin: 0 0 8px;
   font-size: 16px;
-  color: var(--warn);
+  color: #5af4c5;
 }
 
 .status-board {
@@ -131,6 +138,7 @@ body {
 }
 
 .status-track {
+  border-radius: 4px;
   width: 100%;
   height: 10px;
   background: #0a1725;
@@ -160,9 +168,11 @@ body {
   margin-top: 8px;
   display: inline-block;
   padding: 8px 10px;
-  border: 2px solid #305a70;
-  background: #09141f;
-  color: #7ce6ff;
+  border: 2px solid #4ee9a5;
+  background: #04111c;
+  color: #8ff8c8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .status-chip.success { color: #98ffbe; border-color: #2bcf87; }
@@ -207,15 +217,15 @@ input {
 .pixel-btn {
   margin-top: 10px;
   width: 100%;
-  border: 3px solid #0f1c2a;
-  background: #2fd8c5;
+  border: 3px solid #0a2234;
+  background: linear-gradient(180deg, #3cffb1, #1ccf90);
   color: #06211b;
   font-weight: bold;
   padding: 12px 10px;
   cursor: pointer;
   font-size: 14px;
   min-height: 44px;
-  text-shadow: 0 1px 0 rgba(255,255,255,.3);
+  text-shadow: 0 1px 0 rgba(0,0,0,.45), 0 0 8px rgba(0, 255, 170, 0.25);
   transition: transform .1s ease, filter .2s ease;
 }
 
@@ -560,7 +570,7 @@ button.pixel-btn:disabled {
 }
 
 .badges strong {
-  font-family: "Trebuchet MS", "Verdana", sans-serif;
+  font-family: var(--ui-font);
 }
 
 .hero-badges {
@@ -573,7 +583,7 @@ button.pixel-btn:disabled {
 
 .hero-badges span {
   padding: 4px 8px;
-  border: 1px solid rgba(79, 255, 191, 0.6);
+  border: 1px solid rgba(94, 240, 165, 0.8);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.28);
   color: #98ffe0;
@@ -695,7 +705,7 @@ body.pixel-style-intense .hero-badges span {
 .mode-toggle {
   border: 2px solid #4ef0ff;
   background: #0b1a28;
-  color: #aef6ff;
+  color: #d5ffea;
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -782,4 +792,9 @@ body.pixel-style-subtle .robot-speech {
   right: 0;
   box-shadow: none;
   opacity: 0.92;
+}
+
+@keyframes scanFlicker {
+  0%, 100% { opacity: .20; }
+  50% { opacity: .30; }
 }
