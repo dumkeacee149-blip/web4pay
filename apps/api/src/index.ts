@@ -76,6 +76,10 @@ async function main() {
     };
   });
 
+  function normalizeAgentId(raw: string) {
+    return String(raw).trim().replace(/^ag_/, "");
+  }
+
   // POST helpers: idempotency
   async function withIdempotency<T>(
     request: any,
@@ -118,6 +122,19 @@ async function main() {
     }
   }
 
+  async function getAgentRow(tenantId: string, agentIdRaw: string) {
+    const agentId = normalizeAgentId(agentIdRaw);
+    const rowRes = await pool.query<{ id: string; name: string; wallet_address: string; metadata: any }>(
+      "select id, name, wallet_address, metadata from agents where tenant_id = $1 and id = $2",
+      [tenantId, agentId],
+    );
+    if ((rowRes.rowCount ?? 0) === 0) {
+      throw new ApiError(404, "agentId not found", { code: "not_found" });
+    }
+    return rowRes.rows[0];
+  }
+
+
   // GET /v1/agents/:agentId/yield
   app.get("/v1/agents/:agentId/yield", async (request) => {
     requireAgentActor(request);
@@ -157,6 +174,38 @@ async function main() {
     };
   });
 
+  // GET /v1/agents/:agentId
+  app.get("/v1/agents/:agentId", async (request) => {
+    const agentId = (request.params as any).agentId as string;
+    const row = await getAgentRow(request.tenantId, agentId);
+
+    return {
+      agentId: `ag_${row.id}`,
+      name: row.name,
+      walletAddress: row.wallet_address,
+      metadata: row.metadata,
+    };
+  });
+
+  // PUT /v1/agents/:agentId/wallet
+  app.put("/v1/agents/:agentId/wallet", async (request) => {
+    requireAgentActor(request);
+    const agentIdRaw = (request.params as any).agentId as string;
+    const body = (request.body ?? {}) as any;
+    const walletAddress = requireEthAddress("walletAddress", body.walletAddress);
+
+    await pool.query(
+      "update agents set wallet_address = $1 where tenant_id = $2 and id = $3",
+      [walletAddress, request.tenantId, normalizeAgentId(agentIdRaw)],
+    );
+
+    return {
+      agentId: agentIdRaw,
+      walletAddress,
+      updated: true,
+    };
+  });
+
   // POST /v1/agents
   app.post("/v1/agents", async (request, reply) => {
     requireAgentActor(request);
@@ -188,7 +237,7 @@ async function main() {
     return await withIdempotency(request, reply, async () => {
       const body = (request.body ?? {}) as any;
       const payerAgentIdRaw = requireString("payerAgentId", body.payerAgentId);
-      const payerAgentId = payerAgentIdRaw.replace(/^ag_/, "");
+      const payerAgentId = normalizeAgentId(payerAgentIdRaw);
       const payeeAddress = requireEthAddress("payeeAddress", body.payeeAddress);
       const amount = requireAmount(body.amount);
       const currency = requireString("currency", body.currency);

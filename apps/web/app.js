@@ -10,6 +10,7 @@ const state = {
   apiBase: localStorage.getItem('web4pay_api_base') || 'http://127.0.0.1:3000',
   token: localStorage.getItem('web4pay_token') || 'dev-token-1',
   agentId: '',
+  agentWallet: '',
   quoteId: '',
   escrowId: '',
   lastReleaseStatus: '',
@@ -341,6 +342,8 @@ function updateUi() {
   $('token').value = state.token;
   $('apiBaseLabel').textContent = state.apiBase;
   $('agentId').value = state.agentId || '';
+  const walletEl = $('agentWallet');
+  if (walletEl) walletEl.value = state.agentWallet || '';
   $('quoteId').value = state.quoteId || '';
   $('escrowId').value = state.escrowId || '';
 }
@@ -437,6 +440,7 @@ async function ensureAgentForDemo() {
   const saved = getStoredDefaultAgentId();
   if (saved) {
     state.agentId = saved;
+    await refreshAgentWallet();
     return state.agentId;
   }
 
@@ -446,6 +450,7 @@ async function ensureAgentForDemo() {
   });
   state.agentId = agent.agentId;
   setStoredDefaultAgentId(state.agentId);
+  setWalletFromResponse(agent);
   return state.agentId;
 }
 
@@ -457,6 +462,7 @@ function bindClick(id, handler) {
 
 function resetDemo() {
   state.agentId = '';
+  state.agentWallet = '';
   state.quoteId = '';
   state.escrowId = '';
   state.lastReleaseStatus = '';
@@ -516,6 +522,7 @@ bindClick('createAgent', async () => {
   try {
     const data = await createAgentRobust({ name, retries: 3 });
     state.agentId = data.agentId;
+    setWalletFromResponse(data);
     updateUi();
     log(`Agent 已创建: ${state.agentId}`);
     setToast('Agent 已创建', 'success');
@@ -650,6 +657,89 @@ bindClick('releaseEscrow', async () => {
   }
 });
 
+
+function setWalletFromResponse(payload) {
+  state.agentWallet = payload?.walletAddress || '';
+}
+
+async function refreshAgentWallet() {
+  if (!state.agentId) return;
+  try {
+    const data = await request(`/v1/agents/${state.agentId}`, { method: 'GET', headers: {} });
+    setWalletFromResponse(data);
+    updateUi();
+    log(`已刷新 Agent 钱包: ${state.agentWallet}`);
+    return data;
+  } catch (err) {
+    log(`刷新钱包失败: ${err.message}`);
+    throw err;
+  }
+}
+
+function normalizeHexAddr(addr) {
+  return addr && typeof addr === 'string' ? addr.toLowerCase() : '';
+}
+
+function setWalletBadge(addr) {
+  if (!addr) {
+    setToast('钱包未绑定，暂不能接收收益', 'warn');
+    return;
+  }
+  setToast(`收益钱包：${addr.slice(0, 8)}...${addr.slice(-6)}`, 'success');
+}
+
+async function connectWalletForAgent() {
+  if (!state.agentId) {
+    setToast('先创建 Agent 再绑定钱包', 'warn');
+    return;
+  }
+
+  const provider = window.ethereum;
+  if (!provider || typeof provider.request !== 'function') {
+    const manual = prompt('未检测到钱包扩展，请输入要绑定的钱包地址（0x...）');
+    if (!manual) return;
+
+    const walletAddress = manual.trim();
+    setToast('手动更新钱包地址中...', 'loading');
+    try {
+      await request(`/v1/agents/${state.agentId}/wallet`, {
+        method: 'PUT',
+        headers: { 'Idempotency-Key': randomId('wallet-put') },
+        body: JSON.stringify({ walletAddress }),
+        retries: 1,
+      });
+      await refreshAgentWallet();
+      setWalletBadge(normalizeHexAddr(walletAddress));
+      setToast('钱包已手动绑定', 'success');
+    } catch (err) {
+      setToast(`绑定钱包失败: ${err.message}`, 'error');
+    }
+    return;
+  }
+
+  try {
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : '';
+    if (!account) {
+      setToast('未拿到可用账户', 'warn');
+      return;
+    }
+    await request(`/v1/agents/${state.agentId}/wallet`, {
+      method: 'PUT',
+      headers: { 'Idempotency-Key': randomId('wallet-put') },
+      body: JSON.stringify({ walletAddress: account }),
+      retries: 1,
+    });
+    state.agentWallet = account;
+    updateUi();
+    setWalletBadge(normalizeHexAddr(account));
+    setToast('钱包已连接并绑定', 'success');
+  } catch (err) {
+    setToast(`钱包连接失败: ${err.message}`, 'error');
+    log(`连接钱包失败: ${err.message}`);
+  }
+}
+
 bindClick('clearLog', () => {
   $('log').textContent = '';
   state.logLines = [];
@@ -665,6 +755,16 @@ bindClick('downloadLog', () => {
   URL.revokeObjectURL(a.href);
 });
 
+bindClick('refreshWallet', async () => {
+  if (!state.agentId) {
+    setToast('先创建 Agent 再刷新钱包', 'warn');
+    return;
+  }
+  await refreshAgentWallet();
+  setToast('钱包信息已刷新', 'success');
+});
+
+bindClick('connectWallet', connectWalletForAgent);
 bindClick('refreshState', async () => {
   if (!state.escrowId) {
     setToast('先创建 Escrow 再刷新', 'warn');
@@ -705,12 +805,19 @@ async function runDemo() {
 
     const agentId = await ensureAgentForDemo();
     state.agentId = agentId;
-    const agent = { agentId, name: getAgentNameBase() };
+    const agent = { agentId, name: getAgentNameBase(), walletAddress: state.agentWallet };
     report.agentId = state.agentId;
+    if (!state.agentWallet) {
+      setWalletBadge('');
+    }
     report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
     $('agentId').value = state.agentId;
     setStep('quote');
     setStatusProgress(25, 'Agent 已生成', 'success');
+
+    if (!state.agentWallet) {
+      await refreshAgentWallet().catch(() => {});
+    }
 
     const quote = await request('/v1/quotes', {
       method: 'POST',
