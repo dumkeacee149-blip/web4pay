@@ -30,7 +30,8 @@ export function loadConfig(): AppConfig {
     throw new Error(`Invalid PORT value: ${rawPort}`);
   }
 
-  const onchainEnabled = (process.env.ONCHAIN_ENABLED ?? "").trim() === "1";
+  const rawOnchain = (process.env.ONCHAIN_ENABLED ?? "0").trim().toLowerCase();
+  const onchainEnabled = rawOnchain === "1" || rawOnchain === "true" || rawOnchain === "yes";
 
   return {
     port,
