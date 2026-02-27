@@ -406,7 +406,8 @@ bindClick('checkChain', async () => {
 });
 
 bindClick('createAgent', async () => {
-  const name = $('agentName').value.trim() || `agent-${Date.now()}`;
+  const baseName = $('agentName').value.trim() || `agent-${Date.now()}`;
+  const name = `${baseName}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   setStep('agent');
   setToast('创建 Agent 中...', 'loading');
   setStatusProgress(25, '创建 Agent', 'warn');
