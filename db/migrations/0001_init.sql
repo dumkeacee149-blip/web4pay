@@ -48,7 +48,13 @@ create table if not exists agents (
 create index if not exists agents_tenant_id_idx on agents(tenant_id);
 
 -- Quotes
-create type quote_status as enum ('QUOTE_CREATED','QUOTE_EXPIRED','QUOTE_CANCELLED');
+DO $$
+begin
+  if not exists (select 1 from pg_type where typname = 'quote_status') then
+    create type quote_status as enum ('QUOTE_CREATED','QUOTE_EXPIRED','QUOTE_CANCELLED');
+  end if;
+end;
+$$;
 
 create table if not exists quotes (
   id uuid primary key default gen_random_uuid(),
@@ -70,18 +76,24 @@ create index if not exists quotes_tenant_id_idx on quotes(tenant_id);
 create index if not exists quotes_payer_agent_id_idx on quotes(payer_agent_id);
 
 -- Escrows
-create type escrow_status as enum (
-  'ESCROW_CREATED',
-  'TX_PENDING_DEPOSIT',
-  'DEPOSITED',
-  'RELEASE_REQUESTED',
-  'TX_PENDING_RELEASE',
-  'RELEASED',
-  'REFUND_REQUESTED',
-  'TX_PENDING_REFUND',
-  'REFUNDED',
-  'FAILED'
-);
+DO $$
+begin
+  if not exists (select 1 from pg_type where typname = 'escrow_status') then
+    create type escrow_status as enum (
+      'ESCROW_CREATED',
+      'TX_PENDING_DEPOSIT',
+      'DEPOSITED',
+      'RELEASE_REQUESTED',
+      'TX_PENDING_RELEASE',
+      'RELEASED',
+      'REFUND_REQUESTED',
+      'TX_PENDING_REFUND',
+      'REFUNDED',
+      'FAILED'
+    );
+  end if;
+end;
+$$;
 
 create table if not exists escrows (
   id uuid primary key default gen_random_uuid(),
