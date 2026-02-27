@@ -251,11 +251,12 @@ async function main() {
         const { createDealApproveDeposit } = await import("./onchain_escrow");
 
         const chainCfg = loadChainConfig();
-        const { publicClient, walletClient } = makeClients(chainCfg);
+        const { address, publicClient, walletClient } = makeClients(chainCfg);
 
         const { dealId, txHash: depositTx } = await createDealApproveDeposit({
           publicClient,
           walletClient,
+          account: address,
           escrowAddress: chainCfg.escrowAddress,
           usdcAddress: chainCfg.usdcAddress,
           payeeAddress: q.payee_address as any,

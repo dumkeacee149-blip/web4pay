@@ -91,10 +91,12 @@ export function loadChainConfig(): ChainConfig {
 
 export function makeClients(cfg: ChainConfig): {
   account: ReturnType<typeof privateKeyToAccount>;
+  address: Address;
   publicClient: PublicClient;
   walletClient: WalletClient;
 } {
   const account = privateKeyToAccount(cfg.signerPrivateKey);
+  const address = account.address as Address;
 
   // Note: we intentionally omit a concrete chain type here to avoid overly
   // strict transaction typing differences across L2s.
@@ -107,7 +109,7 @@ export function makeClients(cfg: ChainConfig): {
     transport: http(cfg.rpcUrl),
   }) as unknown as WalletClient;
 
-  return { account, publicClient, walletClient };
+  return { account, address, publicClient, walletClient };
 }
 
 export async function usdcAmountToUnits(

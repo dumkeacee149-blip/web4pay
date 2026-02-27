@@ -10,6 +10,7 @@ export function quoteIdToMetaHash(quoteId: string): `0x${string}` {
 export async function createDealApproveDeposit(params: {
   publicClient: PublicClient;
   walletClient: WalletClient;
+  account: Address;
   escrowAddress: Address;
   usdcAddress: Address;
   payeeAddress: Address;
@@ -20,6 +21,7 @@ export async function createDealApproveDeposit(params: {
   const {
     publicClient,
     walletClient,
+    account,
     escrowAddress,
     usdcAddress,
     payeeAddress,
@@ -38,7 +40,7 @@ export async function createDealApproveDeposit(params: {
     abi: ESCROW_ABI,
     functionName: "createDeal",
     args: [payeeAddress, amountUnits, deadlineSec, metaHash],
-    account: (walletClient as any).account,
+    account,
   });
 
   const dealId: bigint = simCreate.result as bigint;
@@ -51,7 +53,7 @@ export async function createDealApproveDeposit(params: {
     abi: ERC20_ABI,
     functionName: "approve",
     args: [escrowAddress, amountUnits],
-    account: (walletClient as any).account,
+    account,
   });
   const approveHash: Hash = await (walletClient as any).writeContract(simApprove.request);
   await (publicClient as any).waitForTransactionReceipt({ hash: approveHash });
@@ -62,7 +64,7 @@ export async function createDealApproveDeposit(params: {
     abi: ESCROW_ABI,
     functionName: "deposit",
     args: [dealId],
-    account: (walletClient as any).account,
+    account,
   });
   const depositHash: Hash = await (walletClient as any).writeContract(simDeposit.request);
   await (publicClient as any).waitForTransactionReceipt({ hash: depositHash });
