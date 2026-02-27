@@ -393,6 +393,12 @@ input {
   50% { transform: scale(1.2); opacity: 1; }
 }
 
+@keyframes neonPulse {
+  0% { opacity: 0.25; transform: scaleX(0.9); }
+  50% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0.25; transform: scaleX(0.9); }
+}
+
 @media (max-width: 620px) {
   body { padding: 10px; }
   .hero {
@@ -584,7 +590,7 @@ button.pixel-btn:disabled {
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
   box-shadow: 0 0 16px rgba(78, 240, 255, 0.9), 0 0 28px rgba(255, 255, 255, 0.35);
-  animation: pulse 2.4s infinite;
+  animation: neonPulse 2.4s infinite;
 }
 
 #retroRobot {
@@ -634,4 +640,72 @@ button.pixel-btn:disabled {
 @keyframes drift {
   0% { transform: translate(-25px, 8px); opacity: 0.7; }
   100% { transform: translate(-35px, -8px); opacity: 0.35; }
+}
+
+
+/* Visual mode variants */
+body.pixel-style-subtle .pixel-orb {
+  display: none;
+}
+
+body.pixel-style-subtle .console::before {
+  animation-duration: 20s;
+  opacity: 0.35;
+}
+
+body.pixel-style-subtle .scanlines {
+  opacity: 0.12;
+}
+
+body.pixel-style-subtle .hero-badges span {
+  border-style: dashed;
+  opacity: 0.85;
+  text-shadow: none;
+}
+
+body.pixel-style-subtle .status-board,
+body.pixel-style-subtle .card {
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.42), 0 0 0 2px #10202e inset;
+}
+
+body.pixel-style-subtle .neon-line,
+body.pixel-style-subtle #retroRobot {
+  opacity: 0.75;
+}
+
+body.pixel-style-subtle .mobile-actions button::after {
+  animation-duration: 8s;
+}
+
+body.pixel-style-intense .console::before {
+  animation-duration: 7.5s;
+}
+
+body.pixel-style-intense .scanlines {
+  opacity: 0.3;
+}
+
+body.pixel-style-intense .pixel-orb {
+  display: block;
+}
+
+body.pixel-style-intense .hero-badges span {
+  box-shadow: 0 0 12px rgba(152, 255, 190, 0.6);
+}
+
+.mode-toggle {
+  border: 2px solid #4ef0ff;
+  background: #0b1a28;
+  color: #aef6ff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mode-toggle:hover { filter: brightness(1.05); }
+.mode-toggle:active { transform: translate(1px,1px); }
+
+body:not(.pixel-style-subtle):not(.pixel-style-intense) {
+  --pixel-style-default: 1;
 }

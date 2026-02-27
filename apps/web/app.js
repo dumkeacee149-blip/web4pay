@@ -21,6 +21,7 @@ const state = {
   yieldSymbol: 'YIELD',
   yieldRateText: '收益率（演示年化口径）：读取中...',
   yieldTotalMinted: '',
+  styleMode: (localStorage.getItem('web4pay_style_mode') === 'intense' ? 'intense' : 'subtle'),
 };
 
 const stepElements = {
@@ -337,6 +338,18 @@ function renderDemoReportHistory() {
     wrapper.appendChild(btnRow);
     list.appendChild(wrapper);
   });
+}
+
+
+function applyStyleMode() {
+  const mode = state.styleMode === 'intense' ? 'intense' : 'subtle';
+  document.body.classList.remove('pixel-style-subtle', 'pixel-style-intense');
+  document.body.classList.add(`pixel-style-${mode}`);
+  const btn = $('styleModeToggle');
+  if (btn) {
+    btn.textContent = mode === 'intense' ? '🎨 风格：夸张' : '🎨 风格：轻量';
+  }
+  localStorage.setItem('web4pay_style_mode', mode);
 }
 
 function updateUi() {
@@ -839,6 +852,12 @@ bindClick('refreshYield', async () => {
 });
 
 bindClick('connectWallet', connectWalletForAgent);
+bindClick('styleModeToggle', () => {
+  state.styleMode = state.styleMode === 'intense' ? 'subtle' : 'intense';
+  applyStyleMode();
+  setToast(`已切换为 ${state.styleMode === 'intense' ? '夸张' : '轻量'} 风格`, 'success');
+});
+
 bindClick('refreshState', async () => {
   if (!state.escrowId) {
     setToast('先创建 Escrow 再刷新', 'warn');
@@ -1018,6 +1037,7 @@ setInterval(async () => {
   }
 }, 3500);
 
+applyStyleMode();
 applyAgentOnlyView();
 updateUi();
 log('Pixel Console 已启动（Agent-Only）');
