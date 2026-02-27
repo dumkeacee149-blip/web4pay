@@ -27,7 +27,7 @@ services:
       - ./:/app
     command: >
       sh -lc "
-        psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
+        psql \"$$DATABASE_URL\" -v ON_ERROR_STOP=1 -f db/migrations/0001_init.sql
       "
     restart: "no"
 
