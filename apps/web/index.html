@@ -19,6 +19,7 @@
 
     <div class="badges">
       <span>API: <strong id="apiBaseLabel">http://127.0.0.1:3000</strong></span>
+      <span>模式: <strong id="modeBadge">Agent-Only</strong></span>
       <span>状态: <strong id="chainState">未检测</strong></span>
     </div>
 
@@ -60,7 +61,7 @@
         <ul>
           <li>先在“认证与环境”设置 API 与 Token。</li>
           <li>默认使用本地 mock 流程（ONCHAIN_ENABLED=0），更适合演示。</li>
-          <li>点击“重置流程”可清空本次 Agent/Quote/Escrow 记录。</li>
+          <li>当前为“Agent-Only 演示”：仅允许一键流程执行，手动按钮已停用。</li>
         </ul>
       </details>
     </section>
@@ -85,7 +86,7 @@
         <h2>🤖 Agent</h2>
         <label>Agent Name</label>
         <input id="agentName" value="bot-pixie" />
-        <button id="createAgent" class="pixel-btn">创建 Agent</button>
+        <button id="createAgent" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Agent</button>
         <label>最近 Agent</label>
         <input id="agentId" readonly placeholder="创建后自动填充" />
       </article>
@@ -93,21 +94,21 @@
       <article class="card">
         <h2>📄 Quote</h2>
         <label>Payee Address</label>
-        <input id="payee" value="0x1111111111111111111111111111111111111111" />
+        <input id="payee" value="0x1111111111111111111111111111111111111111" readonly title="系统自动管理的收款方" />
         <label>Amount (USDC)</label>
-        <input id="amount" value="1.23" type="number" step="0.01" />
+        <input id="amount" value="1.23" type="number" step="0.01" readonly title="金额由演示流程固定" />
         <label>Order ID</label>
-        <input id="orderId" value="demo-order-" />
-        <button id="createQuote" class="pixel-btn">创建 Quote</button>
+        <input id="orderId" value="demo-order-" readonly title="订单ID由系统自动生成" />
+        <button id="createQuote" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Quote</button>
         <label>最近 Quote</label>
         <input id="quoteId" readonly placeholder="创建后自动填充" />
       </article>
 
       <article class="card">
         <h2>💼 Escrow</h2>
-        <button id="createEscrow" class="pixel-btn">创建 Escrow（托管模拟）</button>
-        <button id="markDeposited" class="pixel-btn warn">模拟标记已入金</button>
-        <button id="releaseEscrow" class="pixel-btn accent">释放到 Payee</button>
+        <button id="createEscrow" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Escrow（托管模拟）</button>
+        <button id="markDeposited" class="pixel-btn warn" disabled title="Agent-Only 模式下禁止手动入金">模拟标记已入金</button>
+        <button id="releaseEscrow" class="pixel-btn accent" disabled title="Agent-Only 模式下禁止手动释放">释放到 Payee</button>
         <label>Escrow ID</label>
         <input id="escrowId" readonly placeholder="创建后自动填充" />
         <pre id="escrowInfo" class="code">还没创建 escrow</pre>

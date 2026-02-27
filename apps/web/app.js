@@ -2,6 +2,8 @@ const $ = (id) => document.getElementById(id);
 
 const DEMO_REPORT_STORAGE_KEY = 'web4pay_demo_reports_v1';
 const MAX_DEMO_REPORTS = 10;
+const AGENT_STORAGE_KEY = 'web4pay_default_agent_id';
+const AGENT_ONLY_MODE = true;
 
 
 const state = {
@@ -115,6 +117,47 @@ async function createAgentRobust({ name, retries = 3 }) {
   throw lastError;
 }
 
+
+function getStoredDefaultAgentId() {
+  try {
+    return localStorage.getItem(AGENT_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function setStoredDefaultAgentId(agentId) {
+  try {
+    localStorage.setItem(AGENT_STORAGE_KEY, agentId);
+  } catch {
+    // ignore
+  }
+}
+
+function applyAgentOnlyView() {
+  ['agentName', 'orderId', 'payee', 'amount'].forEach((id) => {
+    const el = $(id);
+    if (el) el.setAttribute('readonly', 'readonly');
+  });
+
+  ['createAgent', 'createQuote', 'createEscrow', 'markDeposited', 'releaseEscrow'].forEach((id) => {
+    const el = $(id);
+    if (el) {
+      el.disabled = true;
+      el.title = 'Agent-Only 模式：仅允许一键流程执行';
+    }
+  });
+
+  const run = $('runDemo');
+  const runM = $('runDemoMobile');
+  if (run) run.disabled = false;
+  if (runM) runM.disabled = false;
+
+  const modeBadge = $('modeBadge');
+  if (modeBadge) {
+    modeBadge.textContent = AGENT_ONLY_MODE ? 'Agent-Only' : 'Manual';
+  }
+}
 function showResultModal(message, success = true) {
   const modal = $('resultModal');
   const resultText = $('resultText');
@@ -292,6 +335,8 @@ function renderDemoReportHistory() {
 }
 
 function updateUi() {
+  const modeBadge = $('modeBadge');
+  if (modeBadge) modeBadge.textContent = AGENT_ONLY_MODE ? 'Agent-Only' : 'Manual';
   $('apiBase').value = state.apiBase;
   $('token').value = state.token;
   $('apiBaseLabel').textContent = state.apiBase;
@@ -387,6 +432,22 @@ async function refreshEscrow() {
   }
 }
 
+async function ensureAgentForDemo() {
+  const saved = getStoredDefaultAgentId();
+  if (saved) {
+    state.agentId = saved;
+    return state.agentId;
+  }
+
+  const agent = await createAgentRobust({
+    name: `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    retries: 3,
+  });
+  state.agentId = agent.agentId;
+  setStoredDefaultAgentId(state.agentId);
+  return state.agentId;
+}
+
 function bindClick(id, handler) {
   const el = $(id);
   if (!el) return;
@@ -409,6 +470,7 @@ function resetDemo() {
 }
 
 bindClick('saveConfig', () => {
+  state.token = $('token').value.trim() || state.token;
   state.apiBase = $('apiBase').value.trim() || state.apiBase;
   state.token = $('token').value.trim() || state.token;
   localStorage.setItem('web4pay_api_base', state.apiBase);
@@ -436,11 +498,15 @@ bindClick('checkChain', async () => {
     setStatusProgress(0, '链路失败', 'error');
     log(`链路失败: ${err.message}`);
   } finally {
-    setBusyState(false);
+    setBusy(false);
   }
 });
 
 bindClick('createAgent', async () => {
+  if (AGENT_ONLY_MODE) {
+    setToast('当前是 Agent-Only 模式，手动创建已禁用', 'warn');
+    return;
+  }
   const baseName = getAgentNameBase();
   const name = `${baseName}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   setStep('agent');
@@ -461,6 +527,10 @@ bindClick('createAgent', async () => {
 });
 
 bindClick('createQuote', async () => {
+  if (AGENT_ONLY_MODE) {
+    setToast('当前是 Agent-Only 模式，手动创建已禁用', 'warn');
+    return;
+  }
   if (!state.agentId) {
     alert('请先创建 Agent');
     return;
@@ -500,6 +570,10 @@ bindClick('createQuote', async () => {
 });
 
 bindClick('createEscrow', async () => {
+  if (AGENT_ONLY_MODE) {
+    setToast('当前是 Agent-Only 模式，手动流程已禁用', 'warn');
+    return;
+  }
   if (!state.quoteId) {
     alert('请先创建 Quote');
     return;
@@ -527,6 +601,10 @@ bindClick('createEscrow', async () => {
 });
 
 bindClick('markDeposited', async () => {
+  if (AGENT_ONLY_MODE) {
+    setToast('当前是 Agent-Only 模式，手动入金已禁用', 'warn');
+    return;
+  }
   if (!state.escrowId) return alert('请先创建 Escrow');
   setStatusProgress(65, '模拟入金中', 'warn');
   setToast('标记入金中...', 'loading');
@@ -547,6 +625,10 @@ bindClick('markDeposited', async () => {
 });
 
 bindClick('releaseEscrow', async () => {
+  if (AGENT_ONLY_MODE) {
+    setToast('当前是 Agent-Only 模式，手动释放已禁用', 'warn');
+    return;
+  }
   if (!state.escrowId) return alert('请先创建 Escrow');
   setStep('release');
   setToast('Release 发起中...', 'loading');
@@ -620,9 +702,9 @@ async function runDemo() {
     document.body.style.setProperty('--last-beat', Date.now().toString());
   setStatusProgress(10, '链路检测通过', 'success');
 
-    const autoName = `auto-${Date.now()}`;
-    const agent = await createAgentRobust({ name: autoName, retries: 4 });
-    state.agentId = agent.agentId;
+    const agentId = await ensureAgentForDemo();
+    state.agentId = agentId;
+    const agent = { agentId, name: getAgentNameBase() };
     report.agentId = state.agentId;
     report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
     $('agentId').value = state.agentId;
@@ -738,11 +820,12 @@ async function runDemo() {
     setStatusProgress(0, '演示失败', 'error');
     showResultModal(`演示失败：${err.message}`, false);
   } finally {
-    setBusyState(false);
+    setBusy(false);
   }
   updateUi();
 }
 
+state.agentId = getStoredDefaultAgentId();
 state.demoReports = getStoredDemoReports();
 renderDemoReportHistory();
 
@@ -752,8 +835,9 @@ setInterval(async () => {
   }
 }, 3500);
 
+applyAgentOnlyView();
 updateUi();
-log('Pixel Console 已启动');
+log('Pixel Console 已启动（Agent-Only）');
 $('apiBaseLabel').textContent = state.apiBase;
 setToast('等待操作', '');
 setStatusProgress(0, '等待开始', '');

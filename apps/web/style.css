@@ -531,3 +531,26 @@ input {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
 }
+
+
+input[readonly] {
+  opacity: 0.9;
+  color: #8fe5ff;
+  background: #0a1725;
+}
+
+input[readonly]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(90, 245, 200, 0.28);
+}
+
+button[disabled],
+button.pixel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.badges strong {
+  font-family: "Trebuchet MS", "Verdana", sans-serif;
+}
