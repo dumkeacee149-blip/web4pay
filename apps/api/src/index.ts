@@ -135,6 +135,18 @@ async function main() {
   }
 
 
+  // GET /v1/yield/config
+  app.get("/v1/yield/config", async () => {
+    const bpsText = process.env.YIELD_RATE_BPS?.trim();
+    const parsed = Number(bpsText);
+    const rateBps = Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 500;
+    return {
+      rateBps,
+      rateDecimal: `${(rateBps / 10000).toFixed(4)}`,
+      note: rateBps === 500 ? "default 5%" : "custom",
+    };
+  });
+
   // GET /v1/agents/:agentId/yield
   app.get("/v1/agents/:agentId/yield", async (request) => {
     requireAgentActor(request);

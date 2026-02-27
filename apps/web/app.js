@@ -19,6 +19,7 @@ const state = {
   logLines: [],
   yieldBalance: '',
   yieldSymbol: 'YIELD',
+  yieldRateText: '收益率：读取中...',
   yieldTotalMinted: '',
 };
 
@@ -352,6 +353,10 @@ function updateUi() {
     const bal = state.yieldBalance !== '' ? state.yieldBalance : '未查询';
     yieldEl.value = bal;
   }
+  const rateHint = $('yieldRateHint');
+  if (rateHint) {
+    rateHint.textContent = state.yieldRateText;
+  }
   $('quoteId').value = state.quoteId || '';
   $('escrowId').value = state.escrowId || '';
 }
@@ -450,6 +455,7 @@ async function ensureAgentForDemo() {
     state.agentId = saved;
     await refreshAgentWallet();
     await refreshYieldBalance().catch(() => {});
+    await refreshYieldRateConfig().catch(() => {});
     return state.agentId;
   }
 
@@ -475,6 +481,7 @@ function resetDemo() {
   state.quoteId = '';
   state.escrowId = '';
   state.lastReleaseStatus = '';
+  state.yieldBalance = '';
   $('agentId').value = '';
   $('quoteId').value = '';
   $('escrowId').value = '';
@@ -534,6 +541,7 @@ bindClick('createAgent', async () => {
     setWalletFromResponse(data);
     updateUi();
     log(`Agent 已创建: ${state.agentId}`);
+    await refreshYieldRateConfig().catch(() => {});
     setToast('Agent 已创建', 'success');
     setStatusProgress(30, 'Agent 已创建', 'success');
   } catch (err) {
@@ -706,6 +714,24 @@ function normalizeYieldRecord(payload) {
     totalMinted: payload?.totalMinted ?? '0',
     note: payload?.note || '',
   };
+}
+
+async function refreshYieldRateConfig() {
+  try {
+    const config = await request('/v1/yield/config', { method: 'GET', headers: {} });
+    const bps = Number(config?.rateBps);
+    if (Number.isFinite(bps) && bps >= 0) {
+      state.yieldRateText = `收益率：${(bps / 100).toFixed(2)}% (Basis points: ${bps})`;
+      log(`收益率配置已刷新: ${state.yieldRateText}`);
+    } else {
+      state.yieldRateText = '收益率：未配置，默认 5%';
+    }
+    updateUi();
+  } catch (err) {
+    state.yieldRateText = '收益率：读取失败（后端未返回）';
+    updateUi();
+    throw err;
+  }
 }
 
 async function refreshYieldBalance() {
@@ -984,6 +1010,7 @@ async function runDemo() {
 state.agentId = getStoredDefaultAgentId();
 state.demoReports = getStoredDemoReports();
 renderDemoReportHistory();
+refreshYieldRateConfig().catch(() => {});
 
 setInterval(async () => {
   if (state.escrowId) {
