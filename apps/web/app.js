@@ -23,6 +23,21 @@ const stepElements = {
   release: $('step-release'),
 };
 
+function setBusy(isBusy) {
+  const buttons = document.querySelectorAll('.pixel-btn');
+  buttons.forEach((btn) => {
+    btn.disabled = isBusy;
+  });
+
+  if (isBusy) {
+    document.body.classList.add('running');
+    setToast('动作进行中...', 'loading');
+  } else {
+    document.body.classList.remove('running');
+  }
+}
+
+
 function setStep(name) {
   Object.values(stepElements).forEach((el) => el.classList.remove('active'));
   if (name && stepElements[name]) {
@@ -250,13 +265,6 @@ function updateUi() {
   $('escrowId').value = state.escrowId || '';
 }
 
-function setBusy(isBusy) {
-  const buttons = document.querySelectorAll('.pixel-btn');
-  buttons.forEach((btn) => {
-    btn.disabled = isBusy;
-  });
-}
-
 function authHeaders() {
   return {
     Authorization: `Bearer ${state.token}`,
@@ -393,7 +401,7 @@ bindClick('checkChain', async () => {
     setStatusProgress(0, '链路失败', 'error');
     log(`链路失败: ${err.message}`);
   } finally {
-    setBusy(false);
+    setBusyState(false);
   }
 });
 
@@ -578,7 +586,8 @@ async function runDemo() {
     report.steps.push({ step: 'chain', ok: true, payload: chain });
     $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
     log(`链路已检测: ${chain.name} ${chain.chainId}`);
-    setStatusProgress(10, '链路检测通过', 'success');
+    document.body.style.setProperty('--last-beat', Date.now().toString());
+  setStatusProgress(10, '链路检测通过', 'success');
 
     const agent = await request('/v1/agents', {
       method: 'POST',
@@ -668,6 +677,10 @@ async function runDemo() {
       renderDemoReportHistory();
       setStatusProgress(100, '一键演示完成：流程跑通', 'success');
       setToast('一键演示完成：成功跑通主流程', 'success');
+      setTimeout(() => {
+        const t = $('resultToast');
+        t.classList.remove('success');
+      }, 900);
       log(`一键演示完成 | ${state.escrowId}`);
       showResultModal(`本次演示完成\nEscrow: ${state.escrowId}\n最终状态: ${esc.status}\n可通过按钮继续进行下一轮。`, true);
     } else {
@@ -698,7 +711,7 @@ async function runDemo() {
     setStatusProgress(0, '演示失败', 'error');
     showResultModal(`演示失败：${err.message}`, false);
   } finally {
-    setBusy(false);
+    setBusyState(false);
   }
   updateUi();
 }
