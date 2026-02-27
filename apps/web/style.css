@@ -733,3 +733,53 @@ body:not(.pixel-style-subtle):not(.pixel-style-intense) {
 }
 
 body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
+
+.robot-speech {
+  position: absolute;
+  right: 12px;
+  top: 2px;
+  min-width: 120px;
+  max-width: 180px;
+  background: linear-gradient(180deg, rgba(17, 34, 48, 0.95), rgba(12, 20, 30, 0.95));
+  border: 2px solid #3be7ff;
+  color: #c9f5ff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.25;
+  box-shadow: 0 0 10px rgba(59, 231, 255, 0.35);
+  text-shadow: 0 0 6px rgba(155, 255, 238, 0.45);
+  z-index: 3;
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  pointer-events: none;
+}
+
+.robot-speech.show {
+  animation: speechIn 0.22s ease-out forwards, speechOut 0.28s ease-in 1.2s forwards;
+}
+
+.robot-speech::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  bottom: -8px;
+  border-width: 8px 6px 0 6px;
+  border-style: solid;
+  border-color: #3be7ff transparent transparent transparent;
+}
+
+@keyframes speechIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes speechOut {
+  to { opacity: 0; transform: translateY(-2px) scale(0.96); }
+}
+
+body.pixel-style-subtle .robot-speech {
+  top: 8px;
+  right: 0;
+  box-shadow: none;
+  opacity: 0.92;
+}

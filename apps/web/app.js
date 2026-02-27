@@ -54,14 +54,27 @@ function setStep(name) {
 }
 
 
-function triggerRobotWink() {
+function triggerRobotWink(message = '收到啦') {
   const wrap = $('retroRobotWrap');
+  const bubble = $('robotSpeech');
   if (!wrap) return;
+
+  if (bubble) {
+    bubble.textContent = message;
+    bubble.hidden = false;
+    bubble.classList.remove('show');
+    void bubble.offsetWidth;
+    bubble.classList.add('show');
+  }
   wrap.classList.remove('robot-wink');
   // reflow to allow re-trigger
   void wrap.offsetWidth;
   wrap.classList.add('robot-wink');
-  window.setTimeout(() => wrap.classList.remove('robot-wink'), 240);
+  window.setTimeout(() => {
+    wrap.classList.remove('robot-wink');
+    if (bubble) bubble.classList.remove('show');
+    if (bubble) bubble.hidden = true;
+  }, 800);
 }
 
 function setStatusProgress(percent, tagText = '等待开始', kind = 'default') {
@@ -426,7 +439,7 @@ async function request(path, options = {}) {
     if (resp.ok) {
       const m = String(options.method || request.method || 'GET').toUpperCase();
       if (m !== 'GET') {
-        triggerRobotWink();
+        triggerRobotWink(`${m} ${path}`);
       }
       return body;
     }
@@ -896,7 +909,7 @@ async function runDemo() {
   setStep('agent');
   setStatusProgress(5, '开始演示', 'loading');
   setToast('开始自动演示...', 'loading');
-  triggerRobotWink();
+  triggerRobotWink('开始一键演示，启动啦 🚀');
   const report = {
     startedAt: new Date().toISOString(),
     apiBase: state.apiBase,
