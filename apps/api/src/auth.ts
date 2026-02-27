@@ -15,12 +15,21 @@ export interface AuthPluginOptions {
 }
 
 const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, opts) => {
-  fastify.addHook("onRequest", async (request) => {
+  fastify.addHook("preHandler", async (request) => {
     const header = request.headers.authorization;
-    const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+    if (!header || !header.toLowerCase().startsWith("bearer ")) {
+      throw new ApiError(401, "Unauthorized", {
+        code: "unauthorized",
+        detail: "Missing Bearer token",
+      });
+    }
 
-    if (!token || !opts.apiKeys.has(token)) {
-      throw new ApiError(401, "unauthorized", { code: "unauthorized" });
+    const token = header.slice("bearer ".length).trim();
+    if (!opts.apiKeys.has(token)) {
+      throw new ApiError(401, "Unauthorized", {
+        code: "unauthorized",
+        detail: "Invalid API key",
+      });
     }
 
     request.apiKey = token;
@@ -28,4 +37,4 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, opts) 
   });
 };
 
-export default fp(authPlugin, { name: "web4pay-auth" });
+export default fp(authPlugin);
