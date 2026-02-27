@@ -1,0 +1,10 @@
+{
+  "name": "web4pay",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @web4pay/api dev",
+    "build": "pnpm -r build"
+  }
+}
