@@ -47,12 +47,17 @@ services:
       - "3000:3000"
     volumes:
       - ./:/app
+      - api_node_modules:/app/node_modules
+      - pnpm_store:/pnpm/store
     command: >
       sh -lc "
         corepack enable &&
-        pnpm -w install &&
+        pnpm config set store-dir /pnpm/store &&
+        pnpm -w install --unsafe-perm &&
         pnpm --filter @web4pay/api dev
       "
 
 volumes:
   db_data:
+  api_node_modules:
+  pnpm_store:
