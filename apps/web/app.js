@@ -56,8 +56,9 @@ function setStep(name) {
 
 function triggerRobotWink(message = '收到啦') {
   const wrap = $('retroRobotWrap');
+  const cornerWrap = $('cornerRobot');
   const bubble = $('robotSpeech');
-  if (!wrap) return;
+  if (!wrap && !cornerWrap) return;
 
   if (bubble) {
     bubble.textContent = message;
@@ -66,12 +67,21 @@ function triggerRobotWink(message = '收到啦') {
     void bubble.offsetWidth;
     bubble.classList.add('show');
   }
-  wrap.classList.remove('robot-wink');
-  // reflow to allow re-trigger
-  void wrap.offsetWidth;
-  wrap.classList.add('robot-wink');
-  window.setTimeout(() => {
+  if (wrap) {
     wrap.classList.remove('robot-wink');
+    // reflow to allow re-trigger
+    void wrap.offsetWidth;
+    wrap.classList.add('robot-wink');
+  }
+  if (cornerWrap) {
+    cornerWrap.classList.remove('robot-wink');
+    void cornerWrap.offsetWidth;
+    cornerWrap.classList.add('robot-wink');
+  }
+
+  window.setTimeout(() => {
+    if (wrap) wrap.classList.remove('robot-wink');
+    if (cornerWrap) cornerWrap.classList.remove('robot-wink');
     if (bubble) bubble.classList.remove('show');
     if (bubble) bubble.hidden = true;
   }, 800);

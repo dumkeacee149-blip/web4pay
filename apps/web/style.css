@@ -573,6 +573,120 @@ button.pixel-btn:disabled {
   font-family: var(--ui-font);
 }
 
+
+.corner-robot-wrap {
+  position: absolute;
+  right: 0;
+  top: -6px;
+  width: 64px;
+  height: 80px;
+  z-index: 8;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.corner-robot {
+  --tone: #66ffe2;
+  position: relative;
+  width: 54px;
+  height: 58px;
+  border: 2px solid rgba(102, 255, 226, 0.9);
+  border-radius: 8px 8px 6px 6px;
+  background: linear-gradient(180deg, #1b3345, #12212e);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06), 0 0 18px rgba(102,255,226,0.35);
+  image-rendering: pixelated;
+  animation: cornerDroneBob 4.5s ease-in-out infinite;
+}
+
+.corner-robot::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  width: 18px;
+  height: 10px;
+  border: 2px solid var(--tone);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #0e2535;
+}
+
+.corner-robot::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, transparent 0%, rgba(102,255,226,0.4) 50%, transparent 100%);
+}
+
+.corner-robot .c-antenna {
+  position: absolute;
+  top: -8px;
+  left: 24px;
+  width: 4px;
+  height: 8px;
+  background: var(--tone);
+  box-shadow: -2px 2px 0 var(--tone), 2px 2px 0 var(--tone);
+}
+
+.corner-robot .c-eye,
+.corner-robot .c-eye-l,
+.corner-robot .c-eye-r {
+  position: absolute;
+  top: 18px;
+  width: 7px;
+  height: 7px;
+  background: #00ffd4;
+  border: 2px solid rgba(24,255,217,0.9);
+  box-shadow: 0 0 4px #00ffd4;
+}
+
+.corner-robot .c-eye-l { left: 12px; }
+.corner-robot .c-eye-r { right: 11px; }
+
+.corner-robot .c-mouth {
+  position: absolute;
+  left: 18px;
+  top: 33px;
+  width: 14px;
+  height: 7px;
+  border-radius: 0 0 20px 20px;
+  border-bottom: 2px solid #83ffd4;
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+}
+
+.corner-robot.robot-wink {
+  animation: cornerRobotWink 0.24s steps(2) both, cornerDroneBob 4.5s ease-in-out infinite;
+}
+
+@keyframes cornerRobotWink {
+  0% { transform: scaleY(1) translateY(0); }
+  45% { transform: scaleY(0.08) translateY(2px); }
+  100% { transform: scaleY(1) translateY(0); }
+}
+
+@keyframes cornerDroneBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+body.pixel-style-intense .corner-robot {
+  filter: drop-shadow(0 0 10px rgba(102, 255, 226, 0.45));
+  border-color: rgba(150, 255, 230, 0.95);
+}
+
+body.pixel-style-subtle .corner-robot {
+  filter: none;
+  opacity: 0.85;
+}
+
+.corner-robot-wrap .corner-robot { transform-origin: center bottom; }
+
 .hero-badges {
   display: flex;
   gap: 8px;
@@ -746,7 +860,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 .robot-speech {
   position: absolute;
-  right: 12px;
+  right: 84px;
   top: 2px;
   min-width: 120px;
   max-width: 180px;
