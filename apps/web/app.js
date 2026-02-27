@@ -19,7 +19,7 @@ const state = {
   logLines: [],
   yieldBalance: '',
   yieldSymbol: 'YIELD',
-  yieldRateText: '收益率：读取中...',
+  yieldRateText: '收益率（演示年化口径）：读取中...',
   yieldTotalMinted: '',
 };
 
