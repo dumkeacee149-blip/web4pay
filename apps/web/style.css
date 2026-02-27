@@ -77,7 +77,6 @@ body {
 .hero-art {
   width: 110px;
   height: auto;
-  animation: float 2.8s ease-in-out infinite;
   filter: drop-shadow(0 0 6px rgba(59, 231, 255, 0.5));
 }
 
@@ -709,3 +708,28 @@ body.pixel-style-intense .hero-badges span {
 body:not(.pixel-style-subtle):not(.pixel-style-intense) {
   --pixel-style-default: 1;
 }
+
+/* Cute robot micro-interaction */
+.robot-wrap {
+  width: 110px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  animation: float 2.8s ease-in-out infinite, spinTilt 7s linear infinite;
+}
+
+.robot-wrap.robot-wink {
+  animation: robotWink 0.24s steps(1) both;
+}
+
+#retroRobotWrap .hero-art {
+  width: 100%;
+}
+
+@keyframes robotWink {
+  0% { transform: translateY(0) scaleY(1); filter: brightness(1.05); }
+  40% { transform: translateY(-2px) scaleY(0.12); filter: brightness(1.35); }
+  100% { transform: translateY(0) scaleY(1); filter: brightness(1); }
+}
+
+body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }

@@ -53,6 +53,17 @@ function setStep(name) {
   }
 }
 
+
+function triggerRobotWink() {
+  const wrap = $('retroRobotWrap');
+  if (!wrap) return;
+  wrap.classList.remove('robot-wink');
+  // reflow to allow re-trigger
+  void wrap.offsetWidth;
+  wrap.classList.add('robot-wink');
+  window.setTimeout(() => wrap.classList.remove('robot-wink'), 240);
+}
+
 function setStatusProgress(percent, tagText = '等待开始', kind = 'default') {
   const fill = $('statusFill');
   const tag = $('statusTag');
@@ -412,7 +423,13 @@ async function request(path, options = {}) {
       // keep text
     }
 
-    if (resp.ok) return body;
+    if (resp.ok) {
+      const m = String(options.method || request.method || 'GET').toUpperCase();
+      if (m !== 'GET') {
+        triggerRobotWink();
+      }
+      return body;
+    }
 
     const isRetryable = resp.status >= 500 && attempt <= retries;
     if (isRetryable) {
@@ -879,6 +896,7 @@ async function runDemo() {
   setStep('agent');
   setStatusProgress(5, '开始演示', 'loading');
   setToast('开始自动演示...', 'loading');
+  triggerRobotWink();
   const report = {
     startedAt: new Date().toISOString(),
     apiBase: state.apiBase,
