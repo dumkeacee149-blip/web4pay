@@ -22,6 +22,15 @@ Postgres schema migration: `db/migrations/0001_init.sql`
 
 ## Local dev (Docker)
 
+1) Copy environment template:
+
+```bash
+cp .env.example .env
+# edit .env (do NOT commit secrets)
+```
+
+2) Start:
+
 ```bash
 docker compose up --build
 ```
