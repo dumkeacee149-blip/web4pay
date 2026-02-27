@@ -29,6 +29,10 @@
         <button id="runDemo" class="pixel-btn">一键跑通整条链路</button>
         <button id="resetDemo" class="pixel-btn warn">重置流程</button>
       </div>
+      <div class="row" style="grid-template-columns: 1fr 1fr;">
+        <button id="downloadDemoReport" class="pixel-btn accent">导出演示报告</button>
+        <button id="downloadLog" class="pixel-btn warn">导出日志</button>
+      </div>
       <div class="stepper">
         <span id="step-agent">1 Agent</span>
         <span id="step-quote">2 Quote</span>
@@ -52,7 +56,7 @@
         <summary>快速说明</summary>
         <ul>
           <li>先在“认证与环境”设置 API 与 Token。</li>
-          <li>默认使用本地 mock 流程（ONCHAIN_DISABLED=0），更适合演示。</li>
+          <li>默认使用本地 mock 流程（ONCHAIN_ENABLED=0），更适合演示。</li>
           <li>点击“重置流程”可清空本次 Agent/Quote/Escrow 记录。</li>
         </ul>
       </details>

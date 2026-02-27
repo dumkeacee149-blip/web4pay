@@ -7,6 +7,7 @@ const state = {
   quoteId: '',
   escrowId: '',
   lastReleaseStatus: '',
+  lastDemoReport: null,
 };
 
 const stepElements = {
@@ -41,6 +42,26 @@ function setToast(message, kind = '') {
   const t = $('resultToast');
   t.className = 'toast' + (kind ? ` ${kind}` : '');
   t.innerHTML = `${message} ${kind === 'loading' ? '<span class="dot"></span>' : ''}`;
+}
+
+
+function downloadDemoReport() {
+  if (!state.lastDemoReport) {
+    setToast('先运行一键演示再导出报告', 'warn');
+    return;
+  }
+
+  const payload = {
+    ...state.lastDemoReport,
+    exportedAt: new Date().toISOString(),
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `web4pay-demo-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function showResultModal(message, success = true) {
@@ -380,6 +401,7 @@ bindClick('refreshState', async () => {
 });
 
 bindClick('resetDemo', resetDemo);
+bindClick('downloadDemoReport', downloadDemoReport);
 bindClick('modalClose', hideResultModal);
 bindClick('runDemo', runDemo);
 bindClick('runDemoMobile', runDemo);
@@ -389,8 +411,16 @@ async function runDemo() {
   setStep('agent');
   setStatusProgress(5, '开始演示', 'loading');
   setToast('开始自动演示...', 'loading');
+  const report = {
+    startedAt: new Date().toISOString(),
+    apiBase: state.apiBase,
+    token: state.token,
+    steps: [],
+  };
   try {
     const chain = await request('/v1/chain', { method: 'GET', headers: {}, retries: 2 });
+    report.chain = chain;
+    report.steps.push({ step: 'chain', ok: true, payload: chain });
     $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
     log(`链路已检测: ${chain.name} ${chain.chainId}`);
     setStatusProgress(10, '链路检测通过', 'success');
@@ -402,6 +432,7 @@ async function runDemo() {
       retries: 2,
     });
     state.agentId = agent.agentId;
+    report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
     $('agentId').value = state.agentId;
     setStep('quote');
     setStatusProgress(25, 'Agent 已生成', 'success');
@@ -421,6 +452,7 @@ async function runDemo() {
       retries: 2,
     });
     state.quoteId = quote.quoteId;
+    report.steps.push({ step: 'quote', ok: true, quoteId: state.quoteId, orderId: quote.orderId || undefined, amount: quote.amount, currency: quote.currency });
     $('quoteId').value = state.quoteId;
     setStep('escrow');
     setStatusProgress(42, 'Quote 已生成', 'success');
@@ -432,6 +464,8 @@ async function runDemo() {
       retries: 2,
     });
     state.escrowId = escrow.escrowId;
+    report.escrowId = state.escrowId;
+    report.steps.push({ step: 'escrow', ok: true, escrowId: state.escrowId, status: escrow.status || 'CREATED' });
     $('escrowId').value = state.escrowId;
     setStatusProgress(55, 'Escrow 已创建', 'success');
 
@@ -441,6 +475,7 @@ async function runDemo() {
       body: JSON.stringify({ ok: true }),
       retries: 2,
     });
+    report.steps.push({ step: 'markDeposited', ok: true });
     setStatusProgress(68, '已入金', 'success');
 
     setStep('release');
@@ -453,6 +488,7 @@ async function runDemo() {
       retries: 2,
     });
 
+    report.steps.push({ step: 'release', ok: true, response: released });
     await refreshEscrow();
 
     if (released && released.status === 'TX_PENDING_RELEASE') {
@@ -463,15 +499,29 @@ async function runDemo() {
 
     const esc = await refreshEscrow();
     if (esc && esc.status === 'RELEASED') {
+      const finalStatus = esc ? esc.status : 'unknown';
+      report.steps.push({ step: 'finalCheck', ok: finalStatus === 'RELEASED', status: finalStatus });
+      report.completedAt = new Date().toISOString();
+      report.success = finalStatus === 'RELEASED';
+      state.lastDemoReport = report;
       setStatusProgress(100, '一键演示完成：流程跑通', 'success');
       setToast('一键演示完成：成功跑通主流程', 'success');
       log(`一键演示完成 | ${state.escrowId}`);
       showResultModal(`本次演示完成\nEscrow: ${state.escrowId}\n最终状态: ${esc.status}\n可通过按钮继续进行下一轮。`, true);
     } else {
+      report.steps.push({ step: 'finalCheck', ok: false, status: esc ? esc.status : 'unknown' });
+      report.completedAt = new Date().toISOString();
+      report.success = false;
+      state.lastDemoReport = report;
+
       setStatusProgress(85, '等待 watcher 完成', 'warn');
       showResultModal('演示已提交 Release，但后端状态未立刻更新。请稍后刷新状态。', false);
     }
   } catch (err) {
+    report.steps.push({ step: 'error', ok: false, error: err.message });
+    report.completedAt = new Date().toISOString();
+    report.success = false;
+    state.lastDemoReport = report;
     setToast(`演示中断: ${err.message}`, 'error');
     log(`一键演示失败: ${err.message}`);
     setStatusProgress(0, '演示失败', 'error');
