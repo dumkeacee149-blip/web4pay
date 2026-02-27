@@ -1,0 +1,322 @@
+openapi: 3.1.0
+info:
+  title: Web4Pay API
+  version: 0.1.0
+  description: |
+    Developer-facing payments API for AI agents on Base: Quote → USDC Escrow → Oracle Release/Auto Refund.
+servers:
+  - url: https://api.web4pay.example
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Chain
+  - name: Agents
+  - name: Quotes
+  - name: Escrows
+  - name: Webhooks
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Client-provided idempotency key. Required for all POST endpoints.
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string, description: "Machine-readable error code." }
+      required: [title, status]
+
+    ChainConfig:
+      type: object
+      properties:
+        chainId: { type: integer, const: 8453 }
+        name: { type: string, const: base }
+        currency: { type: string, const: USDC }
+        contracts:
+          type: object
+          properties:
+            escrow: { type: string, description: "Escrow contract address" }
+            usdc: { type: string, description: "USDC token address" }
+          required: [escrow, usdc]
+      required: [chainId, name, currency, contracts]
+
+    Agent:
+      type: object
+      properties:
+        agentId: { type: string }
+        name: { type: string }
+        walletAddress: { type: string }
+        createdAt: { type: string, format: date-time }
+        metadata: { type: object, additionalProperties: true }
+      required: [agentId, name, walletAddress, createdAt]
+
+    CreateAgentRequest:
+      type: object
+      properties:
+        name: { type: string }
+        metadata: { type: object, additionalProperties: true }
+      required: [name]
+
+    QuoteStatus:
+      type: string
+      enum: [QUOTE_CREATED, QUOTE_EXPIRED, QUOTE_CANCELLED]
+
+    Quote:
+      type: object
+      properties:
+        quoteId: { type: string }
+        status: { $ref: '#/components/schemas/QuoteStatus' }
+        payerAgentId: { type: string }
+        payeeAddress: { type: string }
+        amount: { type: string, description: "Decimal string" }
+        currency: { type: string, const: USDC }
+        expiresAt: { type: string, format: date-time }
+        deadlineAt: { type: string, format: date-time }
+        orderId: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        quoteHash: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [quoteId, status, payerAgentId, payeeAddress, amount, currency, expiresAt, deadlineAt, quoteHash, createdAt]
+
+    CreateQuoteRequest:
+      type: object
+      properties:
+        payerAgentId: { type: string }
+        payeeAddress: { type: string }
+        amount: { type: string }
+        currency: { type: string, enum: [USDC] }
+        expiresInSec: { type: integer, minimum: 1 }
+        deadlineInSec: { type: integer, minimum: 60 }
+        orderId: { type: string }
+        metadata: { type: object, additionalProperties: true }
+      required: [payerAgentId, payeeAddress, amount, currency, expiresInSec, deadlineInSec]
+
+    EscrowStatus:
+      type: string
+      enum:
+        - ESCROW_CREATED
+        - TX_PENDING_DEPOSIT
+        - DEPOSITED
+        - RELEASE_REQUESTED
+        - TX_PENDING_RELEASE
+        - RELEASED
+        - REFUND_REQUESTED
+        - TX_PENDING_REFUND
+        - REFUNDED
+        - FAILED
+
+    Escrow:
+      type: object
+      properties:
+        escrowId: { type: string }
+        quoteId: { type: string }
+        status: { $ref: '#/components/schemas/EscrowStatus' }
+        amount: { type: string }
+        currency: { type: string, const: USDC }
+        payerAddress: { type: string }
+        payeeAddress: { type: string }
+        onchainEscrowId: { type: string, description: "uint256 as string" }
+        deadlineAt: { type: string, format: date-time }
+        txHashes:
+          type: object
+          properties:
+            deposit: { type: [string, 'null'] }
+            release: { type: [string, 'null'] }
+            refund: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [escrowId, quoteId, status, amount, currency, payerAddress, payeeAddress, deadlineAt, createdAt, updatedAt]
+
+    CreateEscrowRequest:
+      type: object
+      properties:
+        quoteId: { type: string }
+      required: [quoteId]
+
+    TxResponse:
+      type: object
+      properties:
+        escrowId: { type: string }
+        status: { $ref: '#/components/schemas/EscrowStatus' }
+        txHash: { type: string }
+      required: [escrowId, status, txHash]
+
+    ReleaseRequest:
+      type: object
+      properties:
+        deliverableHash: { type: string }
+        evidence:
+          type: object
+          additionalProperties: true
+      required: [deliverableHash]
+
+    RefundRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          enum: [timeout, cancel, policy, failed_delivery]
+      required: [reason]
+
+    WebhookEvent:
+      type: object
+      properties:
+        id: { type: string }
+        type:
+          type: string
+          enum:
+            - quote.created
+            - escrow.tx_submitted
+            - escrow.deposited
+            - escrow.released
+            - escrow.refunded
+            - escrow.failed
+        createdAt: { type: string, format: date-time }
+        data: { type: object, additionalProperties: true }
+      required: [id, type, createdAt, data]
+
+paths:
+  /v1/chain:
+    get:
+      tags: [Chain]
+      summary: Get chain configuration
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChainConfig' }
+
+  /v1/agents:
+    post:
+      tags: [Agents]
+      summary: Create an agent identity and custodied wallet
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAgentRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agent' }
+        '400':
+          description: invalid_request
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /v1/quotes:
+    post:
+      tags: [Quotes]
+      summary: Create an immutable quote
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateQuoteRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quote' }
+
+  /v1/escrows:
+    post:
+      tags: [Escrows]
+      summary: Create escrow and submit deposit transaction
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEscrowRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TxResponse' }
+
+  /v1/escrows/{escrowId}:
+    get:
+      tags: [Escrows]
+      summary: Get escrow status
+      parameters:
+        - name: escrowId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Escrow' }
+
+  /v1/escrows/{escrowId}/release:
+    post:
+      tags: [Escrows]
+      summary: Request release (oracle enforced)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: escrowId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReleaseRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TxResponse' }
+
+  /v1/escrows/{escrowId}/refund:
+    post:
+      tags: [Escrows]
+      summary: Request refund (oracle enforced)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - name: escrowId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefundRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TxResponse' }
