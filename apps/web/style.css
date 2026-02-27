@@ -231,6 +231,52 @@ input {
 .full { grid-column: 1 / -1; }
 #log { max-height: 240px; }
 
+.report-list {
+  margin-top: 10px;
+  border: 2px solid #345066;
+  background: #04101a;
+  min-height: 72px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  max-height: 190px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.report-list .line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  border: 1px dashed rgba(91, 203, 227, 0.3);
+  padding: 6px;
+}
+
+.report-list .line .meta {
+  color: #7fe2a2;
+  white-space: nowrap;
+}
+
+.report-list .line .row {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.report-list .line small {
+  color: #a4d5e5;
+  font-size: 11px;
+}
+
+.report-list button { margin: 0; min-height: 32px; padding: 6px 10px; }
+
+.card h3 {
+  margin: 12px 0 4px;
+  font-size: 14px;
+  color: #ffd87a;
+}
+
 .stepper {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

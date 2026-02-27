@@ -1,5 +1,9 @@
 const $ = (id) => document.getElementById(id);
 
+const DEMO_REPORT_STORAGE_KEY = 'web4pay_demo_reports_v1';
+const MAX_DEMO_REPORTS = 10;
+
+
 const state = {
   apiBase: localStorage.getItem('web4pay_api_base') || 'http://127.0.0.1:3000',
   token: localStorage.getItem('web4pay_token') || 'dev-token-1',
@@ -8,6 +12,8 @@ const state = {
   escrowId: '',
   lastReleaseStatus: '',
   lastDemoReport: null,
+  demoReports: [],
+  logLines: [],
 };
 
 const stepElements = {
@@ -56,14 +62,8 @@ function downloadDemoReport() {
     exportedAt: new Date().toISOString(),
   };
 
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `web4pay-demo-report-${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadPayload(payload, `web4pay-demo-report-${Date.now()}.json`);
 }
-
 function showResultModal(message, success = true) {
   const modal = $('resultModal');
   const resultText = $('resultText');
@@ -81,13 +81,80 @@ function hideResultModal() {
   modal.style.display = '';
 }
 
+function downloadPayload(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function getStoredDemoReports() {
+  try {
+    const raw = localStorage.getItem(DEMO_REPORT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistDemoReports() {
+  try {
+    localStorage.setItem(DEMO_REPORT_STORAGE_KEY, JSON.stringify(state.demoReports.slice(0, MAX_DEMO_REPORTS)));
+  } catch {
+    // ignore
+  }
+}
+
 function log(line) {
   const out = $('log');
   const now = new Date().toLocaleTimeString();
-  out.textContent = `[${now}] ${line}\n${out.textContent}`;
+  const row = `[${now}] ${line}`;
+  state.logLines.unshift(row);
+  state.logLines = state.logLines.slice(0, 120);
+  out.textContent = `${row}\n${out.textContent}`;
   if (out.textContent.length > 30000) {
     out.textContent = out.textContent.slice(0, 25000);
   }
+}
+
+function renderDemoReportHistory() {
+  const list = $('reportList');
+  list.textContent = '';
+
+  if (!state.demoReports.length) {
+    const tip = document.createElement('div');
+    tip.className = 'line';
+    tip.textContent = '暂无报告记录';
+    list.appendChild(tip);
+    return;
+  }
+
+  state.demoReports.forEach((item, idx) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'line';
+
+    const text = document.createElement('div');
+    text.className = 'meta';
+    text.innerHTML = `${item.success ? '✅' : '❌'} ${item.finishedAt || item.startedAt} <small>(${item.escrowId || 'N/A'})</small>`;
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'row';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pixel-btn';
+    btn.style.minHeight = '32px';
+    btn.textContent = '下载';
+    btn.addEventListener('click', () => downloadPayload(item, `web4pay-demo-report-${idx}-${Date.now()}.json`));
+
+    btnRow.appendChild(btn);
+
+    wrapper.appendChild(text);
+    wrapper.appendChild(btnRow);
+    list.appendChild(wrapper);
+  });
 }
 
 function updateUi() {
@@ -379,6 +446,7 @@ bindClick('releaseEscrow', async () => {
 
 bindClick('clearLog', () => {
   $('log').textContent = '';
+  state.logLines = [];
   log('日志已清空');
 });
 
@@ -416,6 +484,7 @@ async function runDemo() {
     apiBase: state.apiBase,
     token: state.token,
     steps: [],
+    logDigestStart: state.logLines.length,
   };
   try {
     const chain = await request('/v1/chain', { method: 'GET', headers: {}, retries: 2 });
@@ -501,27 +570,41 @@ async function runDemo() {
     if (esc && esc.status === 'RELEASED') {
       const finalStatus = esc ? esc.status : 'unknown';
       report.steps.push({ step: 'finalCheck', ok: finalStatus === 'RELEASED', status: finalStatus });
-      report.completedAt = new Date().toISOString();
-      report.success = finalStatus === 'RELEASED';
+      report.finishedAt = new Date().toISOString();
+      report.success = true;
+      report.logDigest = state.logLines.slice(report.logDigestStart, report.logDigestStart + 200);
       state.lastDemoReport = report;
+      state.demoReports.unshift(report);
+      state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
+      persistDemoReports();
+      renderDemoReportHistory();
       setStatusProgress(100, '一键演示完成：流程跑通', 'success');
       setToast('一键演示完成：成功跑通主流程', 'success');
       log(`一键演示完成 | ${state.escrowId}`);
       showResultModal(`本次演示完成\nEscrow: ${state.escrowId}\n最终状态: ${esc.status}\n可通过按钮继续进行下一轮。`, true);
     } else {
       report.steps.push({ step: 'finalCheck', ok: false, status: esc ? esc.status : 'unknown' });
-      report.completedAt = new Date().toISOString();
+      report.finishedAt = new Date().toISOString();
       report.success = false;
+      report.logDigest = state.logLines.slice(report.logDigestStart, report.logDigestStart + 200);
       state.lastDemoReport = report;
-
+      state.demoReports.unshift(report);
+      state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
+      persistDemoReports();
+      renderDemoReportHistory();
       setStatusProgress(85, '等待 watcher 完成', 'warn');
       showResultModal('演示已提交 Release，但后端状态未立刻更新。请稍后刷新状态。', false);
     }
   } catch (err) {
     report.steps.push({ step: 'error', ok: false, error: err.message });
-    report.completedAt = new Date().toISOString();
+    report.finishedAt = new Date().toISOString();
     report.success = false;
+    report.logDigest = state.logLines.slice(report.logDigestStart, report.logDigestStart + 200);
     state.lastDemoReport = report;
+    state.demoReports.unshift(report);
+    state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
+    persistDemoReports();
+    renderDemoReportHistory();
     setToast(`演示中断: ${err.message}`, 'error');
     log(`一键演示失败: ${err.message}`);
     setStatusProgress(0, '演示失败', 'error');
@@ -531,6 +614,9 @@ async function runDemo() {
   }
   updateUi();
 }
+
+state.demoReports = getStoredDemoReports();
+renderDemoReportHistory();
 
 setInterval(async () => {
   if (state.escrowId) {
