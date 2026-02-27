@@ -361,6 +361,7 @@ async function request(path, options = {}) {
   const headers = {
     ...(options.headers || {}),
     ...authHeaders(),
+    'X-Actor': 'agent',
     'Idempotency-Key': staticIdempotencyKey,
   };
 

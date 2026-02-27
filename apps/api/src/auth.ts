@@ -6,6 +6,7 @@ declare module "fastify" {
   interface FastifyRequest {
     tenantId: string;
     apiKey: string;
+    actorType: "human" | "agent";
   }
 }
 
@@ -16,6 +17,9 @@ export interface AuthPluginOptions {
 
 const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, opts) => {
   fastify.addHook("preHandler", async (request) => {
+    const actorHeader = request.headers['x-actor'] as string | undefined;
+    request.actorType = actorHeader?.toLowerCase() === 'agent' ? 'agent' : 'human';
+
     if (request.method === "OPTIONS") {
       return;
     }

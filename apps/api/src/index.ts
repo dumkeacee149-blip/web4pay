@@ -27,7 +27,7 @@ async function main() {
   app.addHook("onRequest", async (request, reply) => {
     reply.header("Access-Control-Allow-Origin", "*");
     reply.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key");
+    reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key, X-Actor");
   });
 
   app.options("/*", async (_request, reply) => {
@@ -109,8 +109,57 @@ async function main() {
     return result;
   }
 
+  function requireAgentActor(request: any) {
+    if ((request.actorType || "human") !== "agent") {
+      throw new ApiError(403, "Agent-only operation", {
+        code: "forbidden",
+        detail: "Set header X-Actor: agent to execute this operation.",
+      });
+    }
+  }
+
+  // GET /v1/agents/:agentId/yield
+  app.get("/v1/agents/:agentId/yield", async (request) => {
+    requireAgentActor(request);
+
+    const agentIdRaw = (request.params as any).agentId as string;
+    const agentId = agentIdRaw.replace(/^ag_/, "");
+
+    const res = await pool.query<{
+      token_symbol: string;
+      amount_numeric: string;
+      minted_total: string;
+      created_at: string;
+      updated_at: string;
+    }>(
+      "select token_symbol, amount_numeric, minted_total, created_at, updated_at from yield_balances where tenant_id = $1 and agent_id = $2",
+      [request.tenantId, agentId],
+    );
+
+    const row = res.rows[0];
+    if (!row) {
+      return {
+        agentId: agentIdRaw,
+        tokenSymbol: "YIELD",
+        balance: "0",
+        totalMinted: "0",
+        note: "No yields yet",
+      };
+    }
+
+    return {
+      agentId: agentIdRaw,
+      tokenSymbol: row.token_symbol,
+      balance: String(row.amount_numeric),
+      totalMinted: String(row.minted_total),
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    };
+  });
+
   // POST /v1/agents
   app.post("/v1/agents", async (request, reply) => {
+    requireAgentActor(request);
     return await withIdempotency(request, reply, async () => {
       const body = (request.body ?? {}) as any;
       const name = requireString("name", body.name);
@@ -135,6 +184,7 @@ async function main() {
 
   // POST /v1/quotes
   app.post("/v1/quotes", async (request, reply) => {
+    requireAgentActor(request);
     return await withIdempotency(request, reply, async () => {
       const body = (request.body ?? {}) as any;
       const payerAgentIdRaw = requireString("payerAgentId", body.payerAgentId);
@@ -216,6 +266,7 @@ async function main() {
 
   // POST /v1/escrows
   app.post("/v1/escrows", async (request, reply) => {
+    requireAgentActor(request);
     return await withIdempotency(request, reply, async () => {
       const body = (request.body ?? {}) as any;
       const quoteIdRaw = requireString("quoteId", body.quoteId);
@@ -351,6 +402,7 @@ async function main() {
 
   // POST /v1/escrows/:escrowId/release
   app.post("/v1/escrows/:escrowId/release", async (request, reply) => {
+    requireAgentActor(request);
     return await withIdempotency(request, reply, async () => {
       const escrowIdRaw = (request.params as any).escrowId as string;
       const escrowId = escrowIdRaw.replace(/^es_/, "");
@@ -382,6 +434,7 @@ async function main() {
 
   // POST /v1/escrows/:escrowId/refund
   app.post("/v1/escrows/:escrowId/refund", async (request, reply) => {
+    requireAgentActor(request);
     return await withIdempotency(request, reply, async () => {
       const escrowIdRaw = (request.params as any).escrowId as string;
       const escrowId = escrowIdRaw.replace(/^es_/, "");
@@ -412,6 +465,7 @@ async function main() {
 
   // convenience dev endpoint to mark deposit confirmed (not in spec)
   app.post("/internal/dev/escrows/:escrowId/markDeposited", async (request) => {
+    requireAgentActor(request);
     const escrowIdRaw = (request.params as any).escrowId as string;
     const escrowId = escrowIdRaw.replace(/^es_/, "");
     await pool.query(

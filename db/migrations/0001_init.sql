@@ -192,3 +192,62 @@ begin
   end if;
 end;
 $$;
+
+-- Yield/interest tokenization (mock token on Base concept)
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'yield_event_type') then
+    create type yield_event_type as enum ('MINT', 'BURN', 'TRANSFER');
+  end if;
+end;
+$$;
+
+create table if not exists yield_balances (
+  tenant_id uuid not null references tenants(id) on delete cascade,
+  agent_id uuid not null references agents(id) on delete cascade,
+  token_symbol text not null default 'YIELD',
+  amount_numeric numeric(78,18) not null default 0,
+  minted_total numeric(78,18) not null default 0,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  primary key (tenant_id, agent_id, token_symbol)
+);
+
+create table if not exists yield_ledger (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references tenants(id) on delete cascade,
+  agent_id uuid not null references agents(id) on delete cascade,
+  escrow_id uuid references escrows(id),
+  action yield_event_type not null,
+  amount_numeric numeric(78,18) not null,
+  token_symbol text not null default 'YIELD',
+  source_currency text not null default 'USDC',
+  exchange_rate numeric(24,18) not null default 1,
+  tx_hash text,
+  meta jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique (tenant_id, escrow_id, action)
+);
+
+create index if not exists yield_balances_tenant_agent_idx on yield_balances(tenant_id, agent_id);
+create index if not exists yield_ledger_tenant_agent_idx on yield_ledger(tenant_id, agent_id);
+create index if not exists yield_ledger_escrow_idx on yield_ledger(escrow_id);
+
+create or replace function touch_yield_updated_at() returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'yield_balances_touch_updated_at'
+  ) then
+    create trigger yield_balances_touch_updated_at
+    before update on yield_balances
+    for each row execute function touch_yield_updated_at();
+  end if;
+end;
+$$;

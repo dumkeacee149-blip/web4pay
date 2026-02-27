@@ -7,6 +7,7 @@ RETRIES="${RETRIES:-3}"
 RETRY_DELAY_MS="${RETRY_DELAY_MS:-400}"
 
 AUTH_HEADER=( -H "Authorization: Bearer ${API_KEY}" )
+AGENT_HEADER=( -H "X-Actor: agent" )
 JSON_HEADER=( -H "Content-Type: application/json" )
 
 need() {
@@ -43,6 +44,7 @@ safe_request() {
     else
       http_code=$(curl -sS -o "$tmp_body" -w '%{http_code}' -X "$method" "${BASE_URL}${path}" \
         "${AUTH_HEADER[@]}" \
+        "${AGENT_HEADER[@]}" \
         "${JSON_HEADER[@]}" \
         -H "Idempotency-Key: ${idem_key}" \
         -d "$body")
