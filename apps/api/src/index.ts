@@ -218,8 +218,9 @@ async function main() {
         currency: string;
         expires_at: string;
         deadline_at: string;
+        quote_hash: string;
       }>(
-        "select id, payer_agent_id, payee_address, amount_numeric, currency, expires_at, deadline_at from quotes where tenant_id = $1 and id = $2",
+        "select id, payer_agent_id, payee_address, amount_numeric, currency, expires_at, deadline_at, quote_hash from quotes where tenant_id = $1 and id = $2",
         [request.tenantId, quoteId],
       );
       if ((quoteRes.rowCount ?? 0) === 0) {

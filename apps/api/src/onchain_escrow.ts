@@ -37,7 +37,7 @@ export async function createDealApproveDeposit(params: {
     address: escrowAddress,
     abi: ESCROW_ABI,
     functionName: "createDeal",
-    args: [payeeAddress, amountUnits, Number(deadlineSec), metaHash],
+    args: [payeeAddress, amountUnits, deadlineSec, metaHash],
     account: (walletClient as any).account,
   });
 

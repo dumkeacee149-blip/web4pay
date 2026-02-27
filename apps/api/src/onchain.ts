@@ -13,6 +13,19 @@ import { privateKeyToAccount } from "viem/accounts";
 
 export const ESCROW_ABI = [
   {
+    type: "event",
+    name: "DealCreated",
+    inputs: [
+      { name: "id", type: "uint256", indexed: true },
+      { name: "payer", type: "address", indexed: true },
+      { name: "payee", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "deadline", type: "uint64", indexed: false },
+      { name: "metaHash", type: "bytes32", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
     type: "function",
     name: "createDeal",
     stateMutability: "nonpayable",
@@ -98,7 +111,7 @@ export function makeClients(cfg: ChainConfig): {
 }
 
 export async function usdcAmountToUnits(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: any,
   usdcAddress: `0x${string}`,
   amountDecimal: string,
 ): Promise<bigint> {
