@@ -89,6 +89,16 @@ services:
         pnpm --filter @web4pay/api exec tsx src/watcher.ts
       "
 
+  web:
+    image: nginx:1.27-alpine
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8080:80"
+    volumes:
+      - ./apps/web:/usr/share/nginx/html:ro
+
 volumes:
   db_data:
   api_node_modules:

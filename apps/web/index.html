@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web4Pay Pixel Console</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="scanlines"></div>
+  <main class="console">
+    <header>
+      <h1>🧩 Web4Pay Pixel Console</h1>
+      <p class="sub">赛博像素风 · 卡通萌化 · 非科幻</p>
+      <div class="badges">
+        <span>API: <strong id="apiBaseLabel">http://127.0.0.1:3000</strong></span>
+        <span>状态: <strong id="chainState">未检测</strong></span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <h2>🔐 认证与环境</h2>
+        <label>API Token</label>
+        <input id="token" placeholder="dev-token-1" value="dev-token-1" />
+
+        <label>API Base</label>
+        <input id="apiBase" placeholder="http://127.0.0.1:3000" value="http://127.0.0.1:3000" />
+
+        <button id="saveConfig" class="pixel-btn">保存配置</button>
+        <button id="checkChain" class="pixel-btn">检查链路</button>
+        <pre id="chainInfo" class="code">点击“检查链路”查看 /v1/chain</pre>
+      </article>
+
+      <article class="card">
+        <h2>🤖 Agent</h2>
+        <label>Agent Name</label>
+        <input id="agentName" value="bot-pixie" />
+        <button id="createAgent" class="pixel-btn">创建 Agent</button>
+        <label>最近 Agent</label>
+        <input id="agentId" readonly placeholder="创建后自动填充" />
+      </article>
+
+      <article class="card">
+        <h2>📄 Quote</h2>
+        <label>Payee Address</label>
+        <input id="payee" value="0x1111111111111111111111111111111111111111" />
+        <label>Amount (USDC)</label>
+        <input id="amount" value="1.23" type="number" step="0.01" />
+        <label>Order ID</label>
+        <input id="orderId" value="demo-order-" />
+        <button id="createQuote" class="pixel-btn">创建 Quote</button>
+        <label>最近 Quote</label>
+        <input id="quoteId" readonly placeholder="创建后自动填充" />
+      </article>
+
+      <article class="card">
+        <h2>💼 Escrow</h2>
+        <button id="createEscrow" class="pixel-btn">创建 Escrow (含托管模拟)</button>
+        <button id="markDeposited" class="pixel-btn warn">模拟标记已入金</button>
+        <button id="releaseEscrow" class="pixel-btn accent">释放到 Payee</button>
+        <label>Escrow ID</label>
+        <input id="escrowId" readonly placeholder="创建后自动填充" />
+        <pre id="escrowInfo" class="code">还没创建 escrow</pre>
+      </article>
+
+      <article class="card full">
+        <h2>🎮 Event log</h2>
+        <button id="clearLog" class="pixel-btn">清空日志</button>
+        <pre id="log" class="code"></pre>
+      </article>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

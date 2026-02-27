@@ -37,6 +37,7 @@ docker compose up --build
 
 - API: http://localhost:3000
 - Default API key (from docker-compose): `dev-token-1`
+- Web UI: http://localhost:8080
 
 By default `ONCHAIN_ENABLED` is off (`0`), so `/v1/escrows` runs in mock mode.
 
@@ -44,6 +45,14 @@ A lightweight watcher is included (`watcher` service) to settle mocked on-chain 
 - `TX_PENDING_DEPOSIT -> DEPOSITED`
 - `TX_PENDING_RELEASE -> RELEASED`
 - `TX_PENDING_REFUND -> REFUNDED`
+
+### UI 风格说明
+
+Web UI 采用**赛博像素 + 卡通风**（非科幻）：
+- 粗边框像素化卡片
+- 亮荧光线条与低饱和色块
+- 圆润卡通按钮与表情标签
+- 低调扫描线效果
 
 Test:
 
