@@ -52,8 +52,11 @@ async function issueYieldToken(pool: any, escrowRow: { id: string; tenant_id: st
     return;
   }
 
-  // Interest model: 3.5% of principal as YIELD token units for demo.
-  const yieldAmount = Number((principal * 0.035).toFixed(18));
+  // Interest model: bank-like demo yield, configurable by YIELD_RATE_BPS (basis points).
+  const bpsText = process.env.YIELD_RATE_BPS?.trim();
+  const bps = bpsText && Number.isFinite(Number(bpsText)) && Number(bpsText) >= 0 ? Number(bpsText) : 500; // default 5%
+  const exchangeRate = bps / 10000;
+  const yieldAmount = Number((principal * exchangeRate).toFixed(18));
   if (yieldAmount <= 0) {
     return;
   }
@@ -64,14 +67,15 @@ async function issueYieldToken(pool: any, escrowRow: { id: string; tenant_id: st
   );
 
   await pool.query(
-    "insert into yield_ledger (tenant_id, agent_id, escrow_id, action, amount_numeric, token_symbol, source_currency, exchange_rate, tx_hash, meta) values ($1, $2, $3, 'MINT', $4, 'YIELD', 'USDC', 0.035, $5, $6) on conflict (tenant_id, escrow_id, action) do nothing",
+    "insert into yield_ledger (tenant_id, agent_id, escrow_id, action, amount_numeric, token_symbol, source_currency, exchange_rate, tx_hash, meta) values ($1, $2, $3, 'MINT', $4, 'YIELD', 'USDC', $5, $6, $7) on conflict (tenant_id, escrow_id, action) do nothing",
     [
       escrowRow.tenant_id,
       escrowRow.payer_agent_id,
       escrowRow.id,
       yieldAmount.toString(),
+      exchangeRate,
       null,
-      JSON.stringify({ principal: escrowRow.amount_numeric, reason: 'interest from release', autoMint: true }),
+      JSON.stringify({ principal: escrowRow.amount_numeric, bps, reason: 'interest from release', autoMint: true }),
     ],
   );
 }
