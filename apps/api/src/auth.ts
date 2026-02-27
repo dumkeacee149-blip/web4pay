@@ -16,6 +16,10 @@ export interface AuthPluginOptions {
 
 const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, opts) => {
   fastify.addHook("preHandler", async (request) => {
+    if (request.method === "OPTIONS") {
+      return;
+    }
+
     const header = request.headers.authorization;
     if (!header || !header.toLowerCase().startsWith("bearer ")) {
       throw new ApiError(401, "Unauthorized", {

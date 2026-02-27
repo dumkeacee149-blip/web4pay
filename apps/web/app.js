@@ -80,6 +80,41 @@ function downloadDemoReport() {
 
   downloadPayload(payload, `web4pay-demo-report-${Date.now()}.json`);
 }
+
+function getAgentNameBase() {
+  return $('agentName').value.trim() || 'agent';
+}
+
+function isDuplicateAgentError(errorText) {
+  return /agents_tenant_id_name_key|duplicate key value/.test(errorText);
+}
+
+async function createAgentRobust({ name, retries = 3 }) {
+  let lastError;
+  for (let idx = 0; idx < retries; idx++) {
+    const payloadName = idx === 0 ? name : `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const idempotencyKey = randomId('agent');
+    try {
+      return await request('/v1/agents', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': idempotencyKey },
+        body: JSON.stringify({ name: payloadName }),
+        retries: 2,
+      });
+    } catch (err) {
+      lastError = err;
+      if (!isDuplicateAgentError(err.message || '')) {
+        throw err;
+      }
+      if (idx < retries - 1) {
+        log(`Agent name 重复，重试创建：${payloadName}`);
+        continue;
+      }
+    }
+  }
+  throw lastError;
+}
+
 function showResultModal(message, success = true) {
   const modal = $('resultModal');
   const resultText = $('resultText');
@@ -406,18 +441,13 @@ bindClick('checkChain', async () => {
 });
 
 bindClick('createAgent', async () => {
-  const baseName = $('agentName').value.trim() || `agent-${Date.now()}`;
+  const baseName = getAgentNameBase();
   const name = `${baseName}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   setStep('agent');
   setToast('创建 Agent 中...', 'loading');
   setStatusProgress(25, '创建 Agent', 'warn');
   try {
-    const data = await request('/v1/agents', {
-      method: 'POST',
-      headers: { 'Idempotency-Key': randomId('agent') },
-      body: JSON.stringify({ name }),
-      retries: 2,
-    });
+    const data = await createAgentRobust({ name, retries: 3 });
     state.agentId = data.agentId;
     updateUi();
     log(`Agent 已创建: ${state.agentId}`);
@@ -590,12 +620,8 @@ async function runDemo() {
     document.body.style.setProperty('--last-beat', Date.now().toString());
   setStatusProgress(10, '链路检测通过', 'success');
 
-    const agent = await request('/v1/agents', {
-      method: 'POST',
-      headers: { 'Idempotency-Key': randomId('agent') },
-      body: JSON.stringify({ name: `auto-${Date.now()}` }),
-      retries: 2,
-    });
+    const autoName = `auto-${Date.now()}`;
+    const agent = await createAgentRobust({ name: autoName, retries: 4 });
     state.agentId = agent.agentId;
     report.agentId = state.agentId;
     report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
