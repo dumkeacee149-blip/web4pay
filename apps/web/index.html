@@ -25,7 +25,10 @@
     <section class="card runcard">
       <h2>🚀 一键演示</h2>
       <p class="help">点击后自动执行：检查链路 → 创建 Agent → 创建 Quote → 创建 Escrow → 标记入金 → Release。</p>
-      <button id="runDemo" class="pixel-btn">一键跑通整条链路</button>
+      <div class="row" style="grid-template-columns: 1fr 1fr;">
+        <button id="runDemo" class="pixel-btn">一键跑通整条链路</button>
+        <button id="resetDemo" class="pixel-btn warn">重置流程</button>
+      </div>
       <div class="stepper">
         <span id="step-agent">1 Agent</span>
         <span id="step-quote">2 Quote</span>
@@ -45,6 +48,14 @@
       </div>
       <div class="status-chip" id="statusTag">等待开始</div>
       <div class="status-summary" id="statusSummary">尚未启动流程</div>
+      <details class="help-block">
+        <summary>快速说明</summary>
+        <ul>
+          <li>先在“认证与环境”设置 API 与 Token。</li>
+          <li>默认使用本地 mock 流程（ONCHAIN_DISABLED=0），更适合演示。</li>
+          <li>点击“重置流程”可清空本次 Agent/Quote/Escrow 记录。</li>
+        </ul>
+      </details>
     </section>
 
     <section class="grid">
@@ -109,6 +120,14 @@
   <div class="mobile-actions">
     <button id="runDemoMobile" class="pixel-btn">一键演示</button>
     <button id="refreshState" class="pixel-btn warn">刷新状态</button>
+  </div>
+
+  <div id="resultModal" class="modal" aria-hidden="true">
+    <div class="modal-inner">
+      <div class="modal-title">🎉 演示结果</div>
+      <p id="resultText">结果内容</p>
+      <button id="modalClose" class="pixel-btn accent">我知道了</button>
+    </div>
   </div>
 
   <script src="./app.js"></script>

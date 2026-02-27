@@ -6,6 +6,7 @@ const state = {
   agentId: '',
   quoteId: '',
   escrowId: '',
+  lastReleaseStatus: '',
 };
 
 const stepElements = {
@@ -15,7 +16,7 @@ const stepElements = {
   release: $('step-release'),
 };
 
-function setStep(name, active) {
+function setStep(name) {
   Object.values(stepElements).forEach((el) => el.classList.remove('active'));
   if (name && stepElements[name]) {
     stepElements[name].classList.add('active');
@@ -40,6 +41,23 @@ function setToast(message, kind = '') {
   const t = $('resultToast');
   t.className = 'toast' + (kind ? ` ${kind}` : '');
   t.innerHTML = `${message} ${kind === 'loading' ? '<span class="dot"></span>' : ''}`;
+}
+
+function showResultModal(message, success = true) {
+  const modal = $('resultModal');
+  const resultText = $('resultText');
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  modal.style.display = 'flex';
+  resultText.textContent = message;
+  resultText.style.color = success ? '#98ffbe' : '#ff95a8';
+}
+
+function hideResultModal() {
+  const modal = $('resultModal');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.style.display = '';
 }
 
 function log(line) {
@@ -79,29 +97,42 @@ function randomId(prefix) {
 }
 
 async function request(path, options = {}) {
+  const staticIdempotencyKey = options.idempotencyKey || randomId('req');
   const headers = {
     ...(options.headers || {}),
     ...authHeaders(),
+    'Idempotency-Key': staticIdempotencyKey,
   };
-  const resp = await fetch(`${state.apiBase}${path}`, {
-    ...options,
-    headers,
-  });
 
-  const text = await resp.text();
-  let body = text;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    // keep text
-  }
+  const retries = Number(options.retries || 0);
+  let attempt = 0;
 
-  if (!resp.ok) {
+  while (true) {
+    attempt += 1;
+    const resp = await fetch(`${state.apiBase}${path}`, {
+      ...options,
+      headers,
+    });
+
+    const text = await resp.text();
+    let body = text;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      // keep text
+    }
+
+    if (resp.ok) return body;
+
+    const isRetryable = resp.status >= 500 && attempt <= retries;
+    if (isRetryable) {
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+      continue;
+    }
+
     const msg = typeof body === 'string' ? body : JSON.stringify(body, null, 2);
     throw new Error(msg || `HTTP ${resp.status}`);
   }
-
-  return body;
 }
 
 function mapEscrowStatusToProgress(status) {
@@ -120,18 +151,18 @@ function mapEscrowStatusToProgress(status) {
 async function refreshEscrow() {
   if (!state.escrowId) return;
   try {
-    const data = await request(`/v1/escrows/${state.escrowId}`, { method: 'GET', headers: {} });
+    const data = await request(`/v1/escrows/${state.escrowId}`, { method: 'GET', headers: {}, retries: 2 });
     $('escrowInfo').textContent = JSON.stringify(data, null, 2);
 
     if (data && data.status) {
       const mapped = mapEscrowStatusToProgress(data.status);
       setStatusProgress(mapped.p, mapped.tag, mapped.kind);
-      setToast(`当前状态: ${data.status}` , data.status === 'RELEASED' ? 'success' : '');
-    }
-
-    if (data?.status === 'RELEASED') {
-      setStep('release');
-      setToast('状态确认：已 RELEASED', 'success');
+      setToast(`当前状态: ${data.status}`, data.status === 'RELEASED' ? 'success' : '');
+      state.lastReleaseStatus = data.status;
+      if (data.status === 'RELEASED') {
+        setStep('release');
+        setToast('状态确认：已 RELEASED', 'success');
+      }
     }
 
     return data;
@@ -145,6 +176,21 @@ function bindClick(id, handler) {
   const el = $(id);
   if (!el) return;
   el.addEventListener('click', handler);
+}
+
+function resetDemo() {
+  state.agentId = '';
+  state.quoteId = '';
+  state.escrowId = '';
+  state.lastReleaseStatus = '';
+  $('agentId').value = '';
+  $('quoteId').value = '';
+  $('escrowId').value = '';
+  $('escrowInfo').textContent = '还没创建 escrow';
+  setToast('流程已重置', 'success');
+  setStatusProgress(0, '已重置流程', '');
+  setStep(null);
+  log('Demo state reset');
 }
 
 bindClick('saveConfig', () => {
@@ -189,6 +235,7 @@ bindClick('createAgent', async () => {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('agent') },
       body: JSON.stringify({ name }),
+      retries: 2,
     });
     state.agentId = data.agentId;
     updateUi();
@@ -207,6 +254,7 @@ bindClick('createQuote', async () => {
     alert('请先创建 Agent');
     return;
   }
+
   const order = $('orderId').value.trim() || `order-${Date.now()}`;
   const payload = {
     payerAgentId: state.agentId,
@@ -226,6 +274,7 @@ bindClick('createQuote', async () => {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('quote') },
       body: JSON.stringify(payload),
+      retries: 2,
     });
     state.quoteId = data.quoteId;
     updateUi();
@@ -252,6 +301,7 @@ bindClick('createEscrow', async () => {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('escrow') },
       body: JSON.stringify({ quoteId: state.quoteId }),
+      retries: 2,
     });
     state.escrowId = data.escrowId;
     updateUi();
@@ -274,6 +324,7 @@ bindClick('markDeposited', async () => {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('mark') },
       body: JSON.stringify({ ok: true }),
+      retries: 2,
     });
     log(`已手动标记入金: ${state.escrowId}`);
     await refreshEscrow();
@@ -293,7 +344,8 @@ bindClick('releaseEscrow', async () => {
     const data = await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('release') },
-      body: JSON.stringify({ deliverableHash: '0x' + Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0') }),
+      body: JSON.stringify({ deliverableHash: `0x${Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0')}` }),
+      retries: 2,
     });
     log(`Release 已发起: status=${data.status}`);
     await refreshEscrow();
@@ -327,6 +379,8 @@ bindClick('refreshState', async () => {
   setToast('状态已刷新', 'success');
 });
 
+bindClick('resetDemo', resetDemo);
+bindClick('modalClose', hideResultModal);
 bindClick('runDemo', runDemo);
 bindClick('runDemoMobile', runDemo);
 
@@ -336,7 +390,7 @@ async function runDemo() {
   setStatusProgress(5, '开始演示', 'loading');
   setToast('开始自动演示...', 'loading');
   try {
-    const chain = await request('/v1/chain', { method: 'GET', headers: {} });
+    const chain = await request('/v1/chain', { method: 'GET', headers: {}, retries: 2 });
     $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
     log(`链路已检测: ${chain.name} ${chain.chainId}`);
     setStatusProgress(10, '链路检测通过', 'success');
@@ -345,6 +399,7 @@ async function runDemo() {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('agent') },
       body: JSON.stringify({ name: `auto-${Date.now()}` }),
+      retries: 2,
     });
     state.agentId = agent.agentId;
     $('agentId').value = state.agentId;
@@ -363,6 +418,7 @@ async function runDemo() {
         deadlineInSec: 3600,
         orderId: `auto-demo-${Date.now()}`,
       }),
+      retries: 2,
     });
     state.quoteId = quote.quoteId;
     $('quoteId').value = state.quoteId;
@@ -373,6 +429,7 @@ async function runDemo() {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('escrow') },
       body: JSON.stringify({ quoteId: state.quoteId }),
+      retries: 2,
     });
     state.escrowId = escrow.escrowId;
     $('escrowId').value = state.escrowId;
@@ -382,25 +439,43 @@ async function runDemo() {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('mark') },
       body: JSON.stringify({ ok: true }),
+      retries: 2,
     });
+    setStatusProgress(68, '已入金', 'success');
 
     setStep('release');
     setStatusProgress(80, 'Release 准备中', 'warn');
 
-    await request(`/v1/escrows/${state.escrowId}/release`, {
+    const released = await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('release') },
-      body: JSON.stringify({ deliverableHash: '0x' + Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0') }),
+      body: JSON.stringify({ deliverableHash: `0x${Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0')}` }),
+      retries: 2,
     });
 
     await refreshEscrow();
-    setStatusProgress(100, '一键演示完成：流程跑通', 'success');
-    setToast('一键演示完成：成功跑通主流程', 'success');
-    log(`一键演示完成 | ${state.escrowId}`);
+
+    if (released && released.status === 'TX_PENDING_RELEASE') {
+      setStatusProgress(95, 'Release 已提交', 'warn');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const esc = await refreshEscrow();
+    if (esc && esc.status === 'RELEASED') {
+      setStatusProgress(100, '一键演示完成：流程跑通', 'success');
+      setToast('一键演示完成：成功跑通主流程', 'success');
+      log(`一键演示完成 | ${state.escrowId}`);
+      showResultModal(`本次演示完成\nEscrow: ${state.escrowId}\n最终状态: ${esc.status}\n可通过按钮继续进行下一轮。`, true);
+    } else {
+      setStatusProgress(85, '等待 watcher 完成', 'warn');
+      showResultModal('演示已提交 Release，但后端状态未立刻更新。请稍后刷新状态。', false);
+    }
   } catch (err) {
     setToast(`演示中断: ${err.message}`, 'error');
     log(`一键演示失败: ${err.message}`);
     setStatusProgress(0, '演示失败', 'error');
+    showResultModal(`演示失败：${err.message}`, false);
   } finally {
     setBusy(false);
   }
