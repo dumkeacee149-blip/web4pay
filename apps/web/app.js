@@ -22,6 +22,20 @@ function setStep(name, active) {
   }
 }
 
+function setStatusProgress(percent, tagText = '等待开始', kind = 'default') {
+  const fill = $('statusFill');
+  const tag = $('statusTag');
+  const sum = $('statusSummary');
+
+  fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+  tag.className = `status-chip ${kind}`;
+  tag.textContent = tagText;
+
+  if (sum) {
+    sum.textContent = `${Math.round(percent)}% · ${tagText}`;
+  }
+}
+
 function setToast(message, kind = '') {
   const t = $('resultToast');
   t.className = 'toast' + (kind ? ` ${kind}` : '');
@@ -90,11 +104,36 @@ async function request(path, options = {}) {
   return body;
 }
 
+function mapEscrowStatusToProgress(status) {
+  switch (status) {
+    case 'TX_PENDING_DEPOSIT': return { p: 45, kind: 'warn', tag: '托管中（入金提交）' };
+    case 'DEPOSITED': return { p: 55, kind: 'success', tag: '托管确认入金' };
+    case 'TX_PENDING_RELEASE': return { p: 75, kind: 'warn', tag: '等待释放交易' };
+    case 'RELEASED': return { p: 100, kind: 'success', tag: '释放成功完成' };
+    case 'TX_PENDING_REFUND': return { p: 75, kind: 'warn', tag: '退款处理中' };
+    case 'REFUNDED': return { p: 100, kind: 'warn', tag: '已退款' };
+    case 'FAILED': return { p: 100, kind: 'error', tag: '流程失败' };
+    default: return { p: 30, kind: '', tag: '托管单已创建' };
+  }
+}
+
 async function refreshEscrow() {
   if (!state.escrowId) return;
   try {
     const data = await request(`/v1/escrows/${state.escrowId}`, { method: 'GET', headers: {} });
     $('escrowInfo').textContent = JSON.stringify(data, null, 2);
+
+    if (data && data.status) {
+      const mapped = mapEscrowStatusToProgress(data.status);
+      setStatusProgress(mapped.p, mapped.tag, mapped.kind);
+      setToast(`当前状态: ${data.status}` , data.status === 'RELEASED' ? 'success' : '');
+    }
+
+    if (data?.status === 'RELEASED') {
+      setStep('release');
+      setToast('状态确认：已 RELEASED', 'success');
+    }
+
     return data;
   } catch (err) {
     $('escrowInfo').textContent = `查询失败: ${err.message}`;
@@ -127,11 +166,13 @@ bindClick('checkChain', async () => {
     $('chainInfo').textContent = JSON.stringify(data, null, 2);
     $('chainState').textContent = `已连通 (${data.name}/${data.chainId})`;
     setToast('链路检查成功', 'success');
+    setStatusProgress(15, '链路已连通', 'success');
     log('链路检查成功');
   } catch (err) {
     $('chainInfo').textContent = `失败: ${err.message}`;
     $('chainState').textContent = '链路失败';
     setToast('链路检查失败', 'error');
+    setStatusProgress(0, '链路失败', 'error');
     log(`链路失败: ${err.message}`);
   } finally {
     setBusy(false);
@@ -142,6 +183,7 @@ bindClick('createAgent', async () => {
   const name = $('agentName').value.trim() || `agent-${Date.now()}`;
   setStep('agent');
   setToast('创建 Agent 中...', 'loading');
+  setStatusProgress(25, '创建 Agent', 'warn');
   try {
     const data = await request('/v1/agents', {
       method: 'POST',
@@ -152,8 +194,10 @@ bindClick('createAgent', async () => {
     updateUi();
     log(`Agent 已创建: ${state.agentId}`);
     setToast('Agent 已创建', 'success');
+    setStatusProgress(30, 'Agent 已创建', 'success');
   } catch (err) {
     setToast('创建 Agent 失败', 'error');
+    setStatusProgress(15, '创建 Agent 失败', 'error');
     log(`创建 Agent 失败: ${err.message}`);
   }
 });
@@ -174,6 +218,7 @@ bindClick('createQuote', async () => {
     orderId: `${order}-${Date.now()}`,
   };
   setStep('quote');
+  setStatusProgress(38, '创建 Quote', 'warn');
   setToast('创建 Quote 中...', 'loading');
 
   try {
@@ -186,8 +231,10 @@ bindClick('createQuote', async () => {
     updateUi();
     log(`Quote 已创建: ${state.quoteId}`);
     setToast('Quote 已创建', 'success');
+    setStatusProgress(42, 'Quote 已创建', 'success');
   } catch (err) {
     setToast('创建 Quote 失败', 'error');
+    setStatusProgress(30, '创建 Quote 失败', 'error');
     log(`创建 Quote 失败: ${err.message}`);
   }
 });
@@ -199,6 +246,7 @@ bindClick('createEscrow', async () => {
   }
   setStep('escrow');
   setToast('创建 Escrow 中...', 'loading');
+  setStatusProgress(52, '创建 Escrow', 'warn');
   try {
     const data = await request('/v1/escrows', {
       method: 'POST',
@@ -212,12 +260,14 @@ bindClick('createEscrow', async () => {
     setToast('Escrow 已创建', 'success');
   } catch (err) {
     setToast('创建 Escrow 失败', 'error');
+    setStatusProgress(42, '创建 Escrow 失败', 'error');
     log(`创建 Escrow 失败: ${err.message}`);
   }
 });
 
 bindClick('markDeposited', async () => {
   if (!state.escrowId) return alert('请先创建 Escrow');
+  setStatusProgress(65, '模拟入金中', 'warn');
   setToast('标记入金中...', 'loading');
   try {
     await request(`/internal/dev/escrows/${state.escrowId}/markDeposited`, {
@@ -238,6 +288,7 @@ bindClick('releaseEscrow', async () => {
   if (!state.escrowId) return alert('请先创建 Escrow');
   setStep('release');
   setToast('Release 发起中...', 'loading');
+  setStatusProgress(80, '发起 Release', 'warn');
   try {
     const data = await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
@@ -267,31 +318,38 @@ bindClick('downloadLog', () => {
   URL.revokeObjectURL(a.href);
 });
 
-bindClick('runDemo', async () => {
+bindClick('refreshState', async () => {
+  if (!state.escrowId) {
+    setToast('先创建 Escrow 再刷新', 'warn');
+    return;
+  }
+  await refreshEscrow();
+  setToast('状态已刷新', 'success');
+});
+
+bindClick('runDemo', runDemo);
+bindClick('runDemoMobile', runDemo);
+
+async function runDemo() {
   setBusy(true);
   setStep('agent');
+  setStatusProgress(5, '开始演示', 'loading');
   setToast('开始自动演示...', 'loading');
   try {
-    const base = state.apiBase;
-    if (!base) {
-      throw new Error('API 地址不能为空');
-    }
+    const chain = await request('/v1/chain', { method: 'GET', headers: {} });
+    $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
+    log(`链路已检测: ${chain.name} ${chain.chainId}`);
+    setStatusProgress(10, '链路检测通过', 'success');
 
-    await (async () => {
-      const chain = await request('/v1/chain', { method: 'GET', headers: {} });
-      $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
-      log(`链路已检测: ${chain.name} ${chain.chainId}`);
-    })();
-
-    const name = `auto-${Date.now()}`;
     const agent = await request('/v1/agents', {
       method: 'POST',
       headers: { 'Idempotency-Key': randomId('agent') },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name: `auto-${Date.now()}` }),
     });
     state.agentId = agent.agentId;
     $('agentId').value = state.agentId;
     setStep('quote');
+    setStatusProgress(25, 'Agent 已生成', 'success');
 
     const quote = await request('/v1/quotes', {
       method: 'POST',
@@ -309,6 +367,7 @@ bindClick('runDemo', async () => {
     state.quoteId = quote.quoteId;
     $('quoteId').value = state.quoteId;
     setStep('escrow');
+    setStatusProgress(42, 'Quote 已生成', 'success');
 
     const escrow = await request('/v1/escrows', {
       method: 'POST',
@@ -317,6 +376,7 @@ bindClick('runDemo', async () => {
     });
     state.escrowId = escrow.escrowId;
     $('escrowId').value = state.escrowId;
+    setStatusProgress(55, 'Escrow 已创建', 'success');
 
     await request(`/internal/dev/escrows/${state.escrowId}/markDeposited`, {
       method: 'POST',
@@ -324,8 +384,8 @@ bindClick('runDemo', async () => {
       body: JSON.stringify({ ok: true }),
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
     setStep('release');
+    setStatusProgress(80, 'Release 准备中', 'warn');
 
     await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
@@ -334,22 +394,22 @@ bindClick('runDemo', async () => {
     });
 
     await refreshEscrow();
+    setStatusProgress(100, '一键演示完成：流程跑通', 'success');
     setToast('一键演示完成：成功跑通主流程', 'success');
     log(`一键演示完成 | ${state.escrowId}`);
   } catch (err) {
     setToast(`演示中断: ${err.message}`, 'error');
     log(`一键演示失败: ${err.message}`);
+    setStatusProgress(0, '演示失败', 'error');
   } finally {
     setBusy(false);
   }
-});
+  updateUi();
+}
 
 setInterval(async () => {
   if (state.escrowId) {
-    const data = await refreshEscrow();
-    if (data && data.status === 'RELEASED') {
-      setToast('状态确认：已 RELEASED', 'success');
-    }
+    await refreshEscrow();
   }
 }, 3500);
 
@@ -357,3 +417,5 @@ updateUi();
 log('Pixel Console 已启动');
 $('apiBaseLabel').textContent = state.apiBase;
 setToast('等待操作', '');
+setStatusProgress(0, '等待开始', '');
+setStep(null);

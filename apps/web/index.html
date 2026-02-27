@@ -35,6 +35,18 @@
       <div class="toast" id="resultToast" role="status" aria-live="polite">空闲</div>
     </section>
 
+    <section class="card status-board">
+      <h2>📊 流程状态看板</h2>
+      <div class="status-track" aria-hidden="true">
+        <div id="statusFill" class="status-fill"></div>
+      </div>
+      <div class="status-labels">
+        <span>待开始</span><span>已提交</span><span>托管中</span><span>待释放</span><span>完成</span>
+      </div>
+      <div class="status-chip" id="statusTag">等待开始</div>
+      <div class="status-summary" id="statusSummary">尚未启动流程</div>
+    </section>
+
     <section class="grid">
       <article class="card">
         <h2>🔐 认证与环境</h2>
@@ -93,6 +105,11 @@
       </article>
     </section>
   </main>
+
+  <div class="mobile-actions">
+    <button id="runDemoMobile" class="pixel-btn">一键演示</button>
+    <button id="refreshState" class="pixel-btn warn">刷新状态</button>
+  </div>
 
   <script src="./app.js"></script>
 </body>
