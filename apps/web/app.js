@@ -59,6 +59,7 @@ function downloadDemoReport() {
 
   const payload = {
     ...state.lastDemoReport,
+    token: state.lastDemoReport?.tokenMask || '***',
     exportedAt: new Date().toISOString(),
   };
 
@@ -86,6 +87,81 @@ function downloadPayload(payload, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function escapeCsvValue(value) {
+  const text = value == null ? '' : String(value);
+  const safe = text.replace(/"/g, '""');
+  if (/[",]/.test(safe)) {
+    return `"${safe}"`;
+  }
+  return safe;
+}
+
+function reportToCsvRows(report) {
+  const steps = Array.isArray(report.steps) ? report.steps : [];
+  const chainName = report.chain?.name || '';
+  const chainId = report.chain?.chainId || '';
+  const stepCount = steps.length;
+  const okSteps = steps.filter((s) => s && s.ok === true).length;
+  const failSteps = steps.filter((s) => s && s.ok === false).length;
+  const rows = [
+    ['kind', 'value'],
+    ['escrowId', report.escrowId || ''],
+    ['agentId', report.agentId || ''],
+    ['quoteId', report.quoteId || ''],
+    ['apiBase', report.apiBase || ''],
+    ['chainName', chainName],
+    ['chainId', chainId],
+    ['startedAt', report.startedAt || ''],
+    ['finishedAt', report.finishedAt || report.completedAt || ''],
+    ['success', report.success ? 'true' : 'false'],
+    ['totalSteps', String(stepCount)],
+    ['successfulSteps', String(okSteps)],
+    ['failedSteps', String(failSteps)],
+    ['logDigestCount', String((report.logDigest || []).length)],
+  ];
+
+  rows.push(['stepsJson', JSON.stringify(steps)]);
+  rows.push([]);
+  rows.push(['stepIndex', 'stepName', 'ok', 'statusOrValue', 'raw']);
+  steps.forEach((step, idx) => {
+    const statusOrValue = step.status || step.error || step.orderId || step.escrowId || step.quoteId || '';
+    rows.push([
+      String(idx + 1),
+      step.step || '',
+      step.ok === true ? 'true' : step.ok === false ? 'false' : '',
+      statusOrValue,
+      JSON.stringify(step),
+    ]);
+  });
+
+  return rows.map((row) => row.map(escapeCsvValue).join(',')).join('\n');
+}
+
+function downloadDemoReportCsv() {
+  if (!state.lastDemoReport) {
+    setToast('先运行一键演示再导出 CSV 报告', 'warn');
+    return;
+  }
+
+  const csv = reportToCsvRows(state.lastDemoReport);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `web4pay-demo-report-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadDemoReportPayloadAsCsv(report, suffix) {
+  const csv = reportToCsvRows(report);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `web4pay-demo-report-${suffix}-${Date.now()}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -146,10 +222,18 @@ function renderDemoReportHistory() {
     btn.type = 'button';
     btn.className = 'pixel-btn';
     btn.style.minHeight = '32px';
-    btn.textContent = '下载';
+    btn.textContent = '下载 JSON';
     btn.addEventListener('click', () => downloadPayload(item, `web4pay-demo-report-${idx}-${Date.now()}.json`));
 
+    const csvBtn = document.createElement('button');
+    csvBtn.type = 'button';
+    csvBtn.className = 'pixel-btn warn';
+    csvBtn.style.minHeight = '32px';
+    csvBtn.textContent = '下载 CSV';
+    csvBtn.addEventListener('click', () => downloadDemoReportPayloadAsCsv(item, `report-${idx}`));
+
     btnRow.appendChild(btn);
+    btnRow.appendChild(csvBtn);
 
     wrapper.appendChild(text);
     wrapper.appendChild(btnRow);
@@ -470,6 +554,7 @@ bindClick('refreshState', async () => {
 
 bindClick('resetDemo', resetDemo);
 bindClick('downloadDemoReport', downloadDemoReport);
+bindClick('downloadDemoReportCsv', downloadDemoReportCsv);
 bindClick('modalClose', hideResultModal);
 bindClick('runDemo', runDemo);
 bindClick('runDemoMobile', runDemo);
@@ -483,6 +568,7 @@ async function runDemo() {
     startedAt: new Date().toISOString(),
     apiBase: state.apiBase,
     token: state.token,
+    tokenMask: state.token ? `***${state.token.slice(-4)}` : '',
     steps: [],
     logDigestStart: state.logLines.length,
   };
@@ -501,6 +587,7 @@ async function runDemo() {
       retries: 2,
     });
     state.agentId = agent.agentId;
+    report.agentId = state.agentId;
     report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
     $('agentId').value = state.agentId;
     setStep('quote');
@@ -521,6 +608,7 @@ async function runDemo() {
       retries: 2,
     });
     state.quoteId = quote.quoteId;
+    report.quoteId = state.quoteId;
     report.steps.push({ step: 'quote', ok: true, quoteId: state.quoteId, orderId: quote.orderId || undefined, amount: quote.amount, currency: quote.currency });
     $('quoteId').value = state.quoteId;
     setStep('escrow');
