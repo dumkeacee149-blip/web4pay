@@ -17,6 +17,9 @@ const state = {
   lastDemoReport: null,
   demoReports: [],
   logLines: [],
+  yieldBalance: '',
+  yieldSymbol: 'YIELD',
+  yieldTotalMinted: '',
 };
 
 const stepElements = {
@@ -344,6 +347,11 @@ function updateUi() {
   $('agentId').value = state.agentId || '';
   const walletEl = $('agentWallet');
   if (walletEl) walletEl.value = state.agentWallet || '';
+  const yieldEl = $('yieldBalance');
+  if (yieldEl) {
+    const bal = state.yieldBalance !== '' ? state.yieldBalance : '未查询';
+    yieldEl.value = bal;
+  }
   $('quoteId').value = state.quoteId || '';
   $('escrowId').value = state.escrowId || '';
 }
@@ -441,6 +449,7 @@ async function ensureAgentForDemo() {
   if (saved) {
     state.agentId = saved;
     await refreshAgentWallet();
+    await refreshYieldBalance().catch(() => {});
     return state.agentId;
   }
 
@@ -669,6 +678,7 @@ async function refreshAgentWallet() {
     setWalletFromResponse(data);
     updateUi();
     log(`已刷新 Agent 钱包: ${state.agentWallet}`);
+    refreshYieldBalance().catch(() => {});
     return data;
   } catch (err) {
     log(`刷新钱包失败: ${err.message}`);
@@ -687,6 +697,39 @@ function setWalletBadge(addr) {
   }
   setToast(`收益钱包：${addr.slice(0, 8)}...${addr.slice(-6)}`, 'success');
 }
+
+
+function normalizeYieldRecord(payload) {
+  return {
+    symbol: payload?.tokenSymbol || 'YIELD',
+    balance: payload?.balance ?? payload?.amount ?? '0',
+    totalMinted: payload?.totalMinted ?? '0',
+    note: payload?.note || '',
+  };
+}
+
+async function refreshYieldBalance() {
+  if (!state.agentId) {
+    setToast('先创建 Agent 再查询收益余额', 'warn');
+    return;
+  }
+  try {
+    const data = await request(`/v1/agents/${state.agentId}/yield`, { method: 'GET', headers: {} });
+    const y = normalizeYieldRecord(data);
+    state.yieldSymbol = y.symbol;
+    state.yieldBalance = `${y.balance}`;
+    state.yieldTotalMinted = `${y.totalMinted}`;
+    updateUi();
+    log(`收益余额已刷新: ${state.yieldSymbol} ${state.yieldBalance}`);
+    setToast(`当前收益: ${state.yieldSymbol} ${state.yieldBalance}`, 'success');
+  } catch (err) {
+    state.yieldBalance = '查询失败';
+    state.yieldTotalMinted = '';
+    updateUi();
+    throw err;
+  }
+}
+
 
 async function connectWalletForAgent() {
   if (!state.agentId) {
@@ -762,6 +805,11 @@ bindClick('refreshWallet', async () => {
   }
   await refreshAgentWallet();
   setToast('钱包信息已刷新', 'success');
+});
+
+bindClick('refreshYield', async () => {
+  await refreshYieldBalance();
+  setToast('收益余额已刷新', 'success');
 });
 
 bindClick('connectWallet', connectWalletForAgent);
