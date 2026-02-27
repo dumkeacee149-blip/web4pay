@@ -721,14 +721,14 @@ async function refreshYieldRateConfig() {
     const config = await request('/v1/yield/config', { method: 'GET', headers: {} });
     const bps = Number(config?.rateBps);
     if (Number.isFinite(bps) && bps >= 0) {
-      state.yieldRateText = `收益率：${(bps / 100).toFixed(2)}% (Basis points: ${bps})`;
+      state.yieldRateText = `收益率（演示年化口径）：${(bps / 100).toFixed(2)}%（基点 ${bps}）`;
       log(`收益率配置已刷新: ${state.yieldRateText}`);
     } else {
-      state.yieldRateText = '收益率：未配置，默认 5%';
+      state.yieldRateText = '收益率（演示年化口径）：5.00%（基点 500，默认）';
     }
     updateUi();
   } catch (err) {
-    state.yieldRateText = '收益率：读取失败（后端未返回）';
+    state.yieldRateText = '收益率（演示年化口径）：读取失败';
     updateUi();
     throw err;
   }

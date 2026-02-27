@@ -143,7 +143,8 @@ async function main() {
     return {
       rateBps,
       rateDecimal: `${(rateBps / 10000).toFixed(4)}`,
-      note: rateBps === 500 ? "default 5%" : "custom",
+      note: rateBps === 500 ? "default 5% (demo)" : "custom",
+      annualizedHint: "此为演示口径的年化收益率示例",
     };
   });
 
