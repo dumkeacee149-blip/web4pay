@@ -2188,3 +2188,165 @@ input {
 .row {
   gap: 10px !important;
 }
+
+/* ===== mobile responsive stabilization ===== */
+@media (max-width: 1024px) {
+  .console {
+    max-width: 920px;
+    gap: 10px;
+    padding-bottom: 90px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card.full {
+    grid-column: 1 / -1;
+  }
+
+  .market-scene {
+    min-height: auto !important;
+  }
+
+  .scene-core {
+    min-height: 0 !important;
+    aspect-ratio: 16 / 9;
+    background-position: center center !important;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 8px !important;
+  }
+
+  .console {
+    gap: 8px;
+    padding-bottom: 96px;
+  }
+
+  .hero {
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+    min-height: auto !important;
+    padding: 8px !important;
+  }
+
+  .hero-side,
+  .hero-side-left,
+  .robot-wrap {
+    min-height: 56px !important;
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  #retroRobot,
+  #retroRobotWrap .hero-art {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .hero-copy-wrap {
+    padding: 6px 7px !important;
+  }
+
+  .hero-copy h1 {
+    font-size: 14px !important;
+    line-height: 1.2;
+    padding: 4px 6px !important;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .sub {
+    font-size: 10px !important;
+    margin-top: 6px !important;
+  }
+
+  .hero-badges {
+    gap: 5px !important;
+    margin-top: 6px !important;
+  }
+
+  .hero-badges span,
+  .badges span {
+    font-size: 9px !important;
+    padding: 3px 5px !important;
+  }
+
+  .badges {
+    gap: 6px !important;
+  }
+
+  .grid,
+  .row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .grid .card {
+    padding: 10px 10px 9px !important;
+  }
+
+  label {
+    font-size: 8px !important;
+    margin-top: 7px !important;
+  }
+
+  input {
+    font-size: 16px !important;
+    line-height: 1.15;
+    padding: 9px 9px !important;
+  }
+
+  .pixel-btn {
+    min-height: 44px !important;
+    font-size: 9px !important;
+    padding: 8px 8px !important;
+  }
+
+  .stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .stepper span,
+  .toast,
+  .status-summary,
+  .status-labels {
+    font-size: 12px !important;
+  }
+
+  .status-track {
+    height: 8px !important;
+  }
+
+  #chainInfo,
+  #escrowInfo,
+  #log,
+  .report-list {
+    font-size: 13px !important;
+    max-height: 180px;
+  }
+
+  .mobile-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .mobile-actions .pixel-btn {
+    margin-top: 0 !important;
+    min-height: 46px !important;
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-copy h1 { font-size: 13px !important; }
+  .hero-badges span,
+  .badges span { font-size: 8px !important; }
+  .pixel-btn { font-size: 8px !important; }
+}
