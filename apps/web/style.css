@@ -1126,3 +1126,123 @@ body.pixel-style-subtle .robot-speech {
 .robot-wrap.robot-state-release #retroRobot {
   filter: drop-shadow(0 0 8px rgba(215, 255, 99, 0.7)) drop-shadow(0 0 14px rgba(215, 255, 99, 0.38));
 }
+
+/* ===== Neon cyberpunk + pixel city refresh ===== */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+  --bg: #070814;
+  --panel: #10182b;
+  --ink: #eaf4ff;
+  --ink-dim: #8da1ca;
+  --line: #59f6ff;
+  --accent: #ff6be9;
+  --warn: #ffcf58;
+  --ok: #6cff9f;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 12%, rgba(255, 107, 233, 0.22), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(89, 246, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, #070814 0%, #0b1022 42%, #0e1a34 75%, #131f3d 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30vh;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(27, 38, 69, 0.95) 0 26px,
+      rgba(17, 28, 54, 0.95) 26px 44px,
+      transparent 44px 58px
+    ),
+    linear-gradient(180deg, rgba(19, 32, 61, 0.25), rgba(19, 32, 61, 0.9));
+  box-shadow: 0 -14px 40px rgba(95, 129, 255, 0.25);
+  z-index: 0;
+}
+
+h1, h2, h3, .pixel-btn, .status-chip, .badges, .hero-badges { letter-spacing: 1px; }
+
+.hero-copy h1 {
+  font-size: clamp(20px, 3vw, 34px);
+  text-shadow: 0 0 12px rgba(89, 246, 255, 0.65), 0 0 28px rgba(255, 107, 233, 0.4);
+}
+
+.sub {
+  color: #9fb7e5;
+  text-shadow: 0 0 8px rgba(110, 154, 255, 0.35);
+}
+
+.badges span,
+.hero-badges span {
+  background: rgba(10, 17, 34, 0.85);
+  border-color: #63e3ff;
+  box-shadow: 0 0 10px rgba(89, 246, 255, 0.3);
+}
+
+.card {
+  background:
+    linear-gradient(180deg, rgba(16, 24, 43, 0.96), rgba(11, 17, 33, 0.98));
+  border-color: #66dcff;
+  box-shadow:
+    0 0 0 2px #0a1326 inset,
+    0 0 0 1px rgba(255,255,255,0.08) inset,
+    0 0 20px rgba(89, 246, 255, 0.16),
+    4px 4px 0 rgba(0,0,0,0.45);
+}
+
+.card h2 {
+  color: #8af8ff;
+  text-shadow: 0 0 10px rgba(89,246,255,0.5);
+}
+
+input, .code, .status-summary, .report-list {
+  border-color: #3f6bb2;
+  background: #091224;
+}
+
+.pixel-btn {
+  border-color: #224472;
+  background: linear-gradient(180deg, #6af6ff, #36c6ff);
+  color: #051325;
+  text-shadow: none;
+  box-shadow: 0 0 14px rgba(89, 246, 255, 0.34);
+}
+
+.pixel-btn.accent {
+  background: linear-gradient(180deg, #ff8df4, #ff66cf);
+  color: #2a0320;
+  box-shadow: 0 0 16px rgba(255, 107, 233, 0.35);
+}
+
+.pixel-btn.warn {
+  background: linear-gradient(180deg, #ffe27c, #ffbb4f);
+  color: #2d1d02;
+}
+
+.status-track {
+  border-color: #385989;
+  background: #0a1328;
+}
+
+.status-fill {
+  background: linear-gradient(90deg, #66f2ff, #ff6be9);
+}
+
+.status-chip {
+  border-color: #66e2ff;
+  color: #8af8ff;
+  background: #071121;
+}
+
+.modal-inner {
+  border-color: #66e2ff;
+  box-shadow: 0 0 0 2px #102646 inset, 0 0 20px rgba(89, 246, 255, 0.3), 6px 6px 0 #030914;
+}
