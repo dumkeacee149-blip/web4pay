@@ -72,10 +72,29 @@ body {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-items: center;
   gap: 10px;
+}
+
+.hero-side {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-side-left {
+  justify-content: flex-end;
+}
+
+.hero-side-right {
+  justify-content: flex-start;
+}
+
+.hero-copy-wrap {
+  min-width: 0;
+  text-align: center;
 }
 
 .hero-copy h1 { margin: 0; letter-spacing: 1px; }
@@ -594,7 +613,7 @@ button.pixel-btn:disabled {
   background: linear-gradient(180deg, #1b3345, #12212e);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06), 0 0 18px rgba(102,255,226,0.35);
   image-rendering: pixelated;
-  animation: cornerDroneBob 4.5s ease-in-out infinite;
+  animation: cornerDroneBob 4.6s ease-in-out infinite;
 }
 
 .corner-robot::before {
@@ -658,7 +677,7 @@ button.pixel-btn:disabled {
 }
 
 .corner-robot.robot-wink {
-  animation: cornerRobotWink 0.24s steps(2) both, cornerDroneBob 4.5s ease-in-out infinite;
+  animation: cornerRobotWink 0.24s steps(2) both, cornerDroneBob 4.6s ease-in-out infinite;
 }
 
 @keyframes cornerRobotWink {
@@ -686,6 +705,7 @@ body.pixel-style-subtle .corner-robot {
 
 .hero-badges {
   display: flex;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 8px;
@@ -848,11 +868,11 @@ body:not(.pixel-style-subtle):not(.pixel-style-intense) {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  animation: float 2.8s ease-in-out infinite, spinTilt 7s linear infinite;
+  animation: robotFloat 4.6s ease-in-out infinite, spinTilt 4.6s linear infinite;
 }
 
 .robot-wrap.robot-wink {
-  animation: robotWink 0.24s steps(1) both;
+  animation: robotWink 0.24s steps(1) both, robotFloat 4.6s ease-in-out infinite, spinTilt 4.6s linear infinite;
 }
 
 #retroRobotWrap .hero-art {
@@ -869,7 +889,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 .robot-speech {
   position: absolute;
-  right: 12px;
+  left: 128px;
   top: 2px;
   min-width: 120px;
   max-width: 180px;
@@ -912,7 +932,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 body.pixel-style-subtle .robot-speech {
   top: 8px;
-  right: 12px;
+  left: 118px;
   box-shadow: none;
   opacity: 0.92;
 }
@@ -933,4 +953,9 @@ body.pixel-style-subtle .robot-speech {
   .hero-art {
     width: 84px;
   }
+}
+
+@keyframes robotFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
 }
