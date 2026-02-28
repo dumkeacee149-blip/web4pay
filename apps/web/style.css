@@ -629,6 +629,7 @@ button.pixel-btn:disabled {
   background: #0e2535;
 }
 
+/* .corner-robot::after */
 .corner-robot::after {
   content: "";
   position: absolute;
@@ -656,9 +657,9 @@ button.pixel-btn:disabled {
   top: 18px;
   width: 7px;
   height: 7px;
-  background: #00ffd4;
-  border: 2px solid rgba(24,255,217,0.9);
-  box-shadow: 0 0 4px #00ffd4;
+  background: var(--tone);
+  border: 2px solid color-mix(in srgb, var(--tone) 95%, rgba(255,255,255,0.9));
+  box-shadow: 0 0 4px var(--tone);
 }
 
 .corner-robot .c-eye-l { left: 12px; }
@@ -671,7 +672,7 @@ button.pixel-btn:disabled {
   width: 14px;
   height: 7px;
   border-radius: 0 0 20px 20px;
-  border-bottom: 2px solid #83ffd4;
+  border-bottom: 2px solid color-mix(in srgb, var(--tone) 72%, #fff);
   border-left: 2px solid transparent;
   border-right: 2px solid transparent;
 }
@@ -864,6 +865,7 @@ body:not(.pixel-style-subtle):not(.pixel-style-intense) {
 }
 
 .robot-wrap {
+  --robot-tone: #5dffe3;
   width: 110px;
   display: inline-flex;
   justify-content: center;
@@ -958,4 +960,117 @@ body.pixel-style-subtle .robot-speech {
 @keyframes robotFloat {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-3px); }
+}
+
+
+.robot-wrap {
+  --robot-tone: #5dffe3;
+}
+
+.robot-wrap.robot-state-agent {
+  --robot-tone: #5dffe3;
+}
+
+.robot-wrap.robot-state-quote {
+  --robot-tone: #6df1ff;
+}
+
+.robot-wrap.robot-state-escrow {
+  --robot-tone: #ffcc6a;
+}
+
+.robot-wrap.robot-state-release {
+  --robot-tone: #b7ff5d;
+}
+
+.robot-wrap.robot-state-success {
+  --robot-tone: #4fff9e;
+}
+
+.robot-wrap.robot-state-error {
+  --robot-tone: #ff5f7b;
+}
+
+.corner-robot {
+  --tone: var(--robot-tone, #66ffe2);
+}
+
+.corner-robot-wrap {
+  --tone: var(--robot-tone, #66ffe2);
+}
+
+.corner-robot-wrap.robot-state-agent .corner-robot,
+.corner-robot-wrap.robot-state-agent { --tone: #5dffe3; }
+
+.corner-robot-wrap.robot-state-quote .corner-robot,
+.corner-robot-wrap.robot-state-quote { --tone: #63edff; }
+
+.corner-robot-wrap.robot-state-escrow .corner-robot,
+.corner-robot-wrap.robot-state-escrow { --tone: #ffd16a; }
+
+.corner-robot-wrap.robot-state-release .corner-robot,
+.corner-robot-wrap.robot-state-release { --tone: #d7ff63; }
+
+.corner-robot-wrap.robot-state-success .corner-robot,
+.corner-robot-wrap.robot-state-success { --tone: #57ffa0; }
+
+.corner-robot-wrap.robot-state-error .corner-robot,
+.corner-robot-wrap.robot-state-error { --tone: #ff5f86; }
+
+.corner-robot-wrap.robot-state-idle .corner-robot,
+.corner-robot-wrap.robot-state-idle { --tone: #66ffe2; }
+
+@keyframes robotStatePulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06), 0 0 18px color-mix(in srgb, var(--tone) 45%, transparent); }
+  50% { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14), 0 0 28px color-mix(in srgb, var(--tone) 60%, transparent); }
+}
+
+.corner-robot-wrap.robot-state-quote .corner-robot,
+.corner-robot-wrap.robot-state-escrow .corner-robot,
+.corner-robot-wrap.robot-state-release .corner-robot,
+.corner-robot-wrap.robot-state-success .corner-robot,
+.corner-robot-wrap.robot-state-error .corner-robot,
+.corner-robot-wrap.robot-state-agent .corner-robot,
+.corner-robot-wrap.robot-state-idle .corner-robot {
+  animation-name: cornerDroneBob;
+}
+
+.robot-wrap.robot-state-agent #retroRobot,
+.robot-wrap.robot-state-quote #retroRobot,
+.robot-wrap.robot-state-escrow #retroRobot,
+.robot-wrap.robot-state-release #retroRobot,
+.robot-wrap.robot-state-success #retroRobot,
+.robot-wrap.robot-state-error #retroRobot,
+.robot-wrap.robot-state-idle #retroRobot {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--robot-tone) 65%, transparent)) drop-shadow(0 0 16px color-mix(in srgb, var(--robot-tone) 45%, transparent));
+}
+
+.corner-robot-wrap.robot-state-quote,
+.corner-robot-wrap.robot-state-escrow,
+.corner-robot-wrap.robot-state-release,
+.corner-robot-wrap.robot-state-success,
+.corner-robot-wrap.robot-state-error,
+.corner-robot-wrap.robot-state-agent,
+.corner-robot-wrap.robot-state-idle {
+  animation: robotStatePulse 2.8s ease-in-out infinite;
+}
+
+.robot-wrap.robot-state-error #retroRobot {
+  filter: drop-shadow(0 0 6px rgba(255, 95, 123, 0.72)) drop-shadow(0 0 14px rgba(255, 95, 123, 0.45));
+}
+
+.robot-wrap.robot-state-success #retroRobot {
+  filter: drop-shadow(0 0 8px rgba(79, 255, 156, 0.75)) drop-shadow(0 0 16px rgba(79, 255, 156, 0.45));
+}
+
+.robot-wrap.robot-state-quote #retroRobot {
+  filter: drop-shadow(0 0 8px rgba(99, 237, 255, 0.72)) drop-shadow(0 0 14px rgba(99, 237, 255, 0.38));
+}
+
+.robot-wrap.robot-state-escrow #retroRobot {
+  filter: drop-shadow(0 0 8px rgba(255, 209, 106, 0.72)) drop-shadow(0 0 14px rgba(255, 209, 106, 0.36));
+}
+
+.robot-wrap.robot-state-release #retroRobot {
+  filter: drop-shadow(0 0 8px rgba(215, 255, 99, 0.7)) drop-shadow(0 0 14px rgba(215, 255, 99, 0.38));
 }

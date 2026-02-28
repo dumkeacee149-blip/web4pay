@@ -46,10 +46,34 @@ function setBusy(isBusy) {
 }
 
 
+const ROBOT_STATE_CLASS_PREFIX = 'robot-state-';
+const ROBOT_STATE_CLASSES = ['idle', 'agent', 'quote', 'escrow', 'release', 'success', 'error'];
+
+function setRobotState(state = 'idle') {
+  const normalized = ROBOT_STATE_CLASSES.includes(state) ? state : 'idle';
+  const ids = ['retroRobotWrap', 'cornerRobotWrap', 'cornerRobot'];
+
+  ids.forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    for (const stateName of ROBOT_STATE_CLASSES) {
+      el.classList.remove(`${ROBOT_STATE_CLASS_PREFIX}${stateName}`);
+    }
+    el.classList.add(`${ROBOT_STATE_CLASS_PREFIX}${normalized}`);
+  });
+}
+
 function setStep(name) {
   Object.values(stepElements).forEach((el) => el.classList.remove('active'));
   if (name && stepElements[name]) {
     stepElements[name].classList.add('active');
+    const map = {
+      agent: 'agent',
+      quote: 'quote',
+      escrow: 'escrow',
+      release: 'release',
+    };
+    setRobotState(map[name] || 'idle');
   }
 }
 
@@ -491,12 +515,14 @@ async function refreshEscrow() {
       state.lastReleaseStatus = data.status;
       if (data.status === 'RELEASED') {
         setStep('release');
+        setRobotState('success');
         setToast('状态确认：已 RELEASED', 'success');
       }
     }
 
     return data;
   } catch (err) {
+    setRobotState('error');
     $('escrowInfo').textContent = `查询失败: ${err.message}`;
     return null;
   }
@@ -539,6 +565,7 @@ function resetDemo() {
   $('quoteId').value = '';
   $('escrowId').value = '';
   $('escrowInfo').textContent = '还没创建 escrow';
+  setRobotState('idle');
   setToast('流程已重置', 'success');
   setStatusProgress(0, '已重置流程', '');
   setStep(null);
@@ -918,6 +945,7 @@ async function runDemo() {
   setBusy(true);
   setStep('agent');
   setStatusProgress(5, '开始演示', 'loading');
+  setRobotState('agent');
   setToast('开始自动演示...', 'loading');
   triggerRobotWink('开始一键演示，启动啦 🚀');
   const report = {
@@ -947,6 +975,7 @@ async function runDemo() {
     report.steps.push({ step: 'agent', ok: true, agentId: state.agentId, name: agent.name });
     $('agentId').value = state.agentId;
     setStep('quote');
+    setRobotState('quote');
     setStatusProgress(25, 'Agent 已生成', 'success');
 
     if (!state.agentWallet) {
@@ -972,6 +1001,7 @@ async function runDemo() {
     report.steps.push({ step: 'quote', ok: true, quoteId: state.quoteId, orderId: quote.orderId || undefined, amount: quote.amount, currency: quote.currency });
     $('quoteId').value = state.quoteId;
     setStep('escrow');
+    setRobotState('escrow');
     setStatusProgress(42, 'Quote 已生成', 'success');
 
     const escrow = await request('/v1/escrows', {
@@ -996,6 +1026,7 @@ async function runDemo() {
     setStatusProgress(68, '已入金', 'success');
 
     setStep('release');
+    setRobotState('release');
     setStatusProgress(80, 'Release 准备中', 'warn');
 
     const released = await request(`/v1/escrows/${state.escrowId}/release`, {
@@ -1078,6 +1109,7 @@ setInterval(async () => {
   }
 }, 3500);
 
+setRobotState('idle');
 applyStyleMode();
 applyAgentOnlyView();
 updateUi();
