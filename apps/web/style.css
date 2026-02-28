@@ -575,9 +575,6 @@ button.pixel-btn:disabled {
 
 
 .corner-robot-wrap {
-  position: absolute;
-  right: 0;
-  top: -6px;
   width: 64px;
   height: 80px;
   z-index: 8;
@@ -834,6 +831,18 @@ body:not(.pixel-style-subtle):not(.pixel-style-intense) {
 }
 
 /* Cute robot micro-interaction */
+.corner-robot-float {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.corner-robot-wrap {
+  position: static;
+}
+
 .robot-wrap {
   width: 110px;
   display: inline-flex;
@@ -860,7 +869,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 .robot-speech {
   position: absolute;
-  right: 84px;
+  right: 12px;
   top: 2px;
   min-width: 120px;
   max-width: 180px;
@@ -903,7 +912,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 body.pixel-style-subtle .robot-speech {
   top: 8px;
-  right: 0;
+  right: 12px;
   box-shadow: none;
   opacity: 0.92;
 }
@@ -911,4 +920,17 @@ body.pixel-style-subtle .robot-speech {
 @keyframes scanFlicker {
   0%, 100% { opacity: .20; }
   50% { opacity: .30; }
+}
+
+@media (max-width: 700px) {
+  .corner-robot-float {
+    top: 8px;
+    right: 4px;
+    transform: scale(0.75);
+    transform-origin: top right;
+  }
+
+  .hero-art {
+    width: 84px;
+  }
 }
