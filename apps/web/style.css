@@ -1894,3 +1894,67 @@ input, .code, .status-summary, .report-list, .toast, .stepper span {
     font-size: 10px;
   }
 }
+
+/* ===== purge non-pixel elements ===== */
+.scanlines,
+.pixel-orb,
+.neon-line,
+.robot-speech,
+.mobile-actions button::after,
+.console::before {
+  display: none !important;
+}
+
+* {
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+body {
+  background: #101b3a !important;
+}
+
+.hero,
+.card,
+.status-board,
+.runcard,
+.badges span,
+.hero-badges span,
+.pixel-btn,
+input,
+.code,
+.status-summary,
+.report-list,
+.toast,
+.stepper span,
+.modal-inner,
+.mode-toggle {
+  box-shadow: none !important;
+}
+
+.hero-copy h1,
+.card h2,
+.sub {
+  text-shadow: none !important;
+}
+
+.corner-robot-wrap,
+#cornerRobotWrap,
+#cornerRobot {
+  display: none !important;
+}
+
+.hero {
+  grid-template-columns: 84px minmax(0,1fr) !important;
+}
+
+.hero-side-right {
+  display: none !important;
+}
+
+.modal {
+  background: rgba(7, 12, 28, 0.95) !important;
+}
