@@ -71,30 +71,33 @@ body {
 
 .hero {
   position: relative;
+  min-height: 112px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   align-items: center;
-  gap: 10px;
+  justify-items: stretch;
+  padding: 8px 104px 8px 110px;
+  overflow: visible;
 }
 
 .hero-side {
-  min-height: 96px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .hero-side-left {
-  justify-content: flex-end;
+  left: 6px;
 }
 
-.hero-side-right {
-  justify-content: flex-start;
-}
+.hero-side-right { right: 56px; display: none; }
 
 .hero-copy-wrap {
   min-width: 0;
   text-align: center;
+  z-index: 2;
+  margin: 0 auto;
+  width: min(100%, 780px);
 }
 
 .hero-copy h1 { margin: 0; letter-spacing: 1px; }
@@ -725,8 +728,8 @@ body.pixel-style-subtle .corner-robot {
 
 .neon-line {
   position: absolute;
-  right: 12px;
-  top: 24px;
+  right: 94px;
+  top: 36px;
   width: 180px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
@@ -853,9 +856,9 @@ body:not(.pixel-style-subtle):not(.pixel-style-intense) {
 
 /* Cute robot micro-interaction */
 .corner-robot-float {
-  position: fixed;
-  top: 12px;
-  right: 12px;
+  position: absolute;
+  top: 10px;
+  right: 6px;
   z-index: 9;
   pointer-events: none;
 }
@@ -891,7 +894,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 .robot-speech {
   position: absolute;
-  left: 128px;
+  left: 132px;
   top: 2px;
   min-width: 120px;
   max-width: 180px;
@@ -934,7 +937,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 body.pixel-style-subtle .robot-speech {
   top: 8px;
-  left: 118px;
+  left: 122px;
   box-shadow: none;
   opacity: 0.92;
 }
@@ -945,15 +948,22 @@ body.pixel-style-subtle .robot-speech {
 }
 
 @media (max-width: 700px) {
+  .hero {
+    padding: 8px 72px 8px 84px;
+  }
   .corner-robot-float {
     top: 8px;
     right: 4px;
-    transform: scale(0.75);
+    transform: scale(0.72);
     transform-origin: top right;
   }
 
   .hero-art {
-    width: 84px;
+    width: 78px;
+  }
+
+  .hero-copy h1 {
+    font-size: 20px;
   }
 }
 
