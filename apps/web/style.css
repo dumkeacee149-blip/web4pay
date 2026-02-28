@@ -1412,3 +1412,127 @@ input, .code, .status-summary, .report-list {
   .code-screen { width: calc(100% - 82px); margin: 34px 0 0 86px; min-height: 96px; }
   .scene-sign { font-size: 10px; }
 }
+
+/* ===== v3 strict cartoon-retrofuture cyberpunk pixel style ===== */
+.market-scene {
+  border-width: 3px !important;
+  min-height: 340px !important;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(69, 255, 223, 0.25), transparent 30%),
+    radial-gradient(circle at 88% 14%, rgba(255, 153, 76, 0.23), transparent 28%),
+    linear-gradient(180deg, #140f37 0%, #17133f 45%, #15193f 100%) !important;
+}
+
+.scene-core {
+  min-height: 300px !important;
+  border-color: #51c7ff !important;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.06), 0 0 24px rgba(81, 199, 255, 0.24);
+}
+
+.scene-core::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 84px;
+  background:
+    repeating-linear-gradient(90deg, #1f2455 0 22px, #222d63 22px 36px, #1a2250 36px 56px),
+    linear-gradient(180deg, transparent, rgba(11, 15, 44, 0.95));
+  opacity: 0.95;
+}
+
+.code-screen {
+  margin-top: 42px !important;
+  border-width: 4px !important;
+  min-height: 150px !important;
+  background: linear-gradient(180deg, #1f6bb4, #104388) !important;
+}
+
+.code-title {
+  font-size: clamp(20px, 2.4vw, 34px) !important;
+}
+
+.cashier-bot {
+  width: 136px !important;
+  height: 166px !important;
+  top: 78px !important;
+  border-color: #7bf7ff !important;
+  background: linear-gradient(180deg, #2ca2a8, #1b5f71) !important;
+}
+
+.cashier-bot::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: -16px;
+  height: 14px;
+  border: 2px solid #7bf7ff;
+  background: #173b4f;
+}
+
+.mini-bot {
+  right: 18% !important;
+  top: 112px !important;
+  width: 84px !important;
+  height: 104px !important;
+  border-color: #ffc783 !important;
+  background: linear-gradient(180deg, #cf804a, #8d522d) !important;
+}
+
+.crowd {
+  position: absolute;
+  right: 18px;
+  bottom: 54px;
+  display: flex;
+  gap: 10px;
+}
+
+.crowd .bot {
+  width: 28px;
+  height: 38px;
+  border: 2px solid #79d8ff;
+  background: linear-gradient(180deg, #2a4f8a, #1f335d);
+  box-shadow: 0 0 10px rgba(121, 216, 255, 0.4);
+}
+
+.crowd .bot::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 4px;
+  margin: 8px auto 0;
+  background: #ffe48f;
+}
+
+.crowd .b2 { border-color: #7affbf; background: linear-gradient(180deg, #215e65, #173f4a); }
+.crowd .b3 { border-color: #ff8de8; background: linear-gradient(180deg, #674084, #40265f); }
+.crowd .b4 { border-color: #7bd7ff; background: linear-gradient(180deg, #3a4e8d, #23356f); }
+
+.scene-sign {
+  font-size: 13px !important;
+  letter-spacing: 0.5px;
+}
+
+.hero-copy h1 {
+  text-shadow: 0 0 14px rgba(130, 238, 255, 0.8), 0 0 28px rgba(255, 110, 231, 0.55) !important;
+}
+
+.card, .status-board, .runcard {
+  border-color: #5edcff !important;
+}
+
+.pixel-btn {
+  border-width: 2px !important;
+  border-color: #1f4f7d !important;
+}
+
+@media (max-width: 620px) {
+  .market-scene { min-height: 260px !important; }
+  .scene-core { min-height: 220px !important; }
+  .cashier-bot { width: 92px !important; height: 112px !important; top: 86px !important; }
+  .mini-bot { width: 62px !important; height: 80px !important; top: 118px !important; right: 10px !important; }
+  .crowd { display: none; }
+  .code-screen { width: calc(100% - 102px) !important; margin: 44px 0 0 98px !important; min-height: 116px !important; }
+}
