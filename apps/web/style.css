@@ -72,14 +72,37 @@ body {
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 124px minmax(0, 1fr) 124px;
   align-items: center;
   gap: 10px;
   min-height: 96px;
+  padding-bottom: 4px;
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 138px;
+  right: 138px;
+  height: 2px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.hero::before {
+  top: 18px;
+  background: linear-gradient(90deg, transparent 0%, rgba(59, 231, 255, 0.55) 12%, rgba(111, 255, 211, 0.38) 88%, transparent 100%);
+}
+
+.hero::after {
+  bottom: 6px;
+  background: linear-gradient(90deg, transparent 0%, rgba(132, 255, 189, 0.34) 12%, rgba(80, 242, 255, 0.18) 88%, transparent 100%);
 }
 
 .hero-side {
   min-height: 96px;
+  width: 124px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,8 +114,8 @@ body {
 
 .hero-side-right {
   justify-content: flex-start;
-  align-items: flex-start;
-  padding-top: 2px;
+  align-items: center;
+  padding-top: 0;
 }
 
 .hero-copy-wrap {
@@ -101,6 +124,17 @@ body {
 }
 
 .hero-copy h1 { margin: 0; letter-spacing: 1px; }
+
+.hero .hero-copy::before {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 2px;
+  margin: 0 auto 6px;
+  background: repeating-linear-gradient(90deg, rgba(102, 255, 210, 0.35) 0, rgba(102, 255, 210, 0.35) 4px, transparent 4px, transparent 6px);
+  opacity: .55;
+}
+
 .sub { margin: 6px 0 0; color: var(--ink-dim); font-size: 14px; }
 .hero-art {
   width: 110px;
@@ -728,9 +762,9 @@ body.pixel-style-subtle .corner-robot {
 
 .neon-line {
   position: absolute;
-  right: 12px;
-  top: 26px;
-  width: 180px;
+  right: 8px;
+  top: 30px;
+  width: 172px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
   box-shadow: 0 0 16px rgba(78, 240, 255, 0.9), 0 0 28px rgba(255, 255, 255, 0.35);
@@ -886,7 +920,7 @@ body.pixel-style-subtle .robot-wrap.robot-wink { animation-duration: 0.14s; }
 
 .robot-speech {
   position: absolute;
-  left: 132px;
+  left: 126px;
   top: 6px;
   min-width: 120px;
   max-width: 180px;
@@ -941,18 +975,27 @@ body.pixel-style-subtle .robot-speech {
 
 @media (max-width: 700px) {
   .hero {
-    grid-template-columns: auto minmax(0,1fr);
+    grid-template-columns: 84px 1fr;
     padding-right: 68px;
   }
+  .hero::before,
+  .hero::after {
+    left: 94px;
+    right: 72px;
+  }
+  .hero::before { top: 14px; }
+  .hero::after { bottom: 4px; }
 
   .hero-side-right {
     width: 64px;
     justify-content: flex-end;
     padding-top: 1px;
+    align-items: flex-start;
+    padding-right: 4px;
   }
 
   .hero-art {
-    width: 78px;
+    width: 74px;
   }
 
   .hero-copy h1 {
@@ -962,6 +1005,7 @@ body.pixel-style-subtle .robot-speech {
   .robot-speech {
     left: 6px;
     right: auto;
+    top: 10px;
   }
 }
 
