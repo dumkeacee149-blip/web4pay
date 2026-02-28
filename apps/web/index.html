@@ -16,7 +16,7 @@
       <div class="hero-copy-wrap">
         <div class="hero-copy">
           <h1>Web4Pay Neon District</h1>
-          <p class="sub">赛博朋克像素风 · 霓虹城市控制台</p>
+          <p class="sub">Cyberpunk Pixel Style · Neon City Console</p>
         </div>
         <div class="hero-badges">
           <span>⚡ Base on-chain</span>
@@ -40,8 +40,8 @@
 
     <div class="badges">
       <span>API: <strong id="apiBaseLabel">http://127.0.0.1:3000</strong></span>
-      <span>模式: <strong id="modeBadge">Agent-Only</strong></span>
-      <span>状态: <strong id="chainState">未检测</strong></span>
+      <span>Mode: <strong id="modeBadge">Agent-Only</strong></span>
+      <span>Status: <strong id="chainState">Not checked</strong></span>
     </div>
 
     <section class="card market-scene" aria-label="Neon robot market scene">
@@ -73,24 +73,24 @@
           <span class="bot b4"></span>
         </div>
 
-        <div class="scene-sign left">V1 测试网投放</div>
-        <div class="scene-sign right">原生代理</div>
+        <div class="scene-sign left">V1 TESTNET DROP</div>
+        <div class="scene-sign right">NATIVE AGENT</div>
       </div>
     </section>
 
     <section class="card runcard demo-admin-only">
-      <h2>🚀 一键演示</h2>
-      <p class="help">点击后自动执行：检查链路 → 创建 Agent → 创建 Quote → 创建 Escrow → 标记入金 → Release。</p>
+      <h2>🚀 One-click Demo</h2>
+      <p class="help">Auto flow: Check chain → Create Agent → Create Quote → Create Escrow → Mark deposited → Release.</p>
       <div class="row" style="grid-template-columns: 1fr 1fr;">
-        <button id="runDemo" class="pixel-btn">一键跑通整条链路</button>
-        <button id="resetDemo" class="pixel-btn warn">重置流程</button>
+        <button id="runDemo" class="pixel-btn">Run Full Demo Flow</button>
+        <button id="resetDemo" class="pixel-btn warn">Reset Flow</button>
       </div>
       <div class="row" style="grid-template-columns: 1fr 1fr;">
-        <button id="downloadDemoReport" class="pixel-btn accent">导出演示报告</button>
-        <button id="downloadDemoReportCsv" class="pixel-btn">导出演示报告(CSV)</button>
+        <button id="downloadDemoReport" class="pixel-btn accent">Export Demo Report</button>
+        <button id="downloadDemoReportCsv" class="pixel-btn">Export Demo Report(CSV)</button>
       </div>
       <div class="row" style="grid-template-columns: 1fr 1fr;">
-        <button id="downloadLog" class="pixel-btn warn">导出日志</button>
+        <button id="downloadLog" class="pixel-btn warn">Export Logs</button>
       </div>
       <div class="stepper">
         <span id="step-agent">1 Agent</span>
@@ -98,33 +98,33 @@
         <span id="step-escrow">3 Escrow</span>
         <span id="step-release">4 Release</span>
       </div>
-      <div class="toast" id="resultToast" role="status" aria-live="polite">空闲</div>
+      <div class="toast" id="resultToast" role="status" aria-live="polite">Idle</div>
     </section>
 
     <section class="card status-board demo-admin-only">
-      <h2>📊 流程状态看板</h2>
+      <h2>📊 Flow Status Board</h2>
       <div class="status-track" aria-hidden="true">
         <div id="statusFill" class="status-fill"></div>
       </div>
       <div class="status-labels">
-        <span>待开始</span><span>已提交</span><span>托管中</span><span>待释放</span><span>完成</span>
+        <span>Not Started</span><span>Submitted</span><span>In Escrow</span><span>Pending Release</span><span>Completed</span>
       </div>
-      <div class="status-chip" id="statusTag">等待开始</div>
-      <div class="status-summary" id="statusSummary">尚未启动流程</div>
+      <div class="status-chip" id="statusTag">Waiting to Start</div>
+      <div class="status-summary" id="statusSummary">Flow has not started yet</div>
       <details class="help-block">
-        <summary>快速说明</summary>
+        <summary>Quick Notes</summary>
         <ul>
-          <li>先在“认证与环境”设置 API 与 Token。</li>
-          <li>默认使用本地 mock 流程（ONCHAIN_ENABLED=0），更适合演示。</li>
-          <li>当前为“Agent-Only 演示”：仅允许一键流程执行，手动按钮已停用。</li>
-          <li>收益率为演示参数，按“演示年化口径”展示，不代表真实金融收益承诺。</li>
+          <li>Set API and token in “Auth & Environment” first.</li>
+          <li>Uses local mock flow by default (ONCHAIN_ENABLED=0), ideal for demo.</li>
+          <li>Current mode is “Agent-Only Demo”: only one-click flow is enabled; manual buttons are disabled.</li>
+          <li>Yield rate is demo-only (annualized display) and not a real financial return promise.</li>
         </ul>
       </details>
     </section>
 
     <section class="grid">
       <article class="card">
-        <h2>🔐 认证与环境</h2>
+        <h2>🔐 Auth & Environment</h2>
         <label>API Token</label>
         <input id="token" placeholder="dev-token-1" value="dev-token-1" />
 
@@ -132,62 +132,62 @@
         <input id="apiBase" placeholder="http://127.0.0.1:3000" value="http://127.0.0.1:3000" />
 
         <div class="row">
-          <button id="saveConfig" class="pixel-btn">保存配置</button>
-          <button id="checkChain" class="pixel-btn">检查链路</button>
+          <button id="saveConfig" class="pixel-btn">Save Config</button>
+          <button id="checkChain" class="pixel-btn">Check Chain</button>
         </div>
-        <pre id="chainInfo" class="code">点击“检查链路”查看 /v1/chain</pre>
+        <pre id="chainInfo" class="code">Click "Check Chain" to view /v1/chain</pre>
       </article>
 
       <article class="card">
         <h2>🤖 Agent</h2>
         <label>Agent Name</label>
         <input id="agentName" value="bot-pixie" />
-        <button id="createAgent" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Agent</button>
-        <label>最近 Agent</label>
-        <input id="agentId" readonly placeholder="创建后自动填充" />
-        <label>收币钱包</label>
-        <input id="agentWallet" readonly placeholder="尚未绑定" />
-        <button id="connectWallet" class="pixel-btn accent">连接钱包接收收益</button>
-        <button id="refreshWallet" class="pixel-btn">刷新钱包信息</button>
-        <label>YIELD余额（仅查看）</label>
-        <input id="yieldBalance" readonly placeholder="未查询" />
-        <div class="help" id="yieldRateHint">收益率：读取中...</div>
-        <div class="help">收益币暂不支持立即领取，待 Base 发射后会开启提币。</div>
-        <button id="refreshYield" class="pixel-btn warn">刷新收益余额</button>
+        <button id="createAgent" class="pixel-btn" disabled title="Manual create disabled in Agent-Only mode">Create Agent</button>
+        <label>Latest Agent</label>
+        <input id="agentId" readonly placeholder="Auto-filled after creation" />
+        <label>Payout Wallet</label>
+        <input id="agentWallet" readonly placeholder="Not linked yet" />
+        <button id="connectWallet" class="pixel-btn accent">Connect Wallet for Yield</button>
+        <button id="refreshWallet" class="pixel-btn">Refresh Wallet</button>
+        <label>YIELD Balance (read-only)</label>
+        <input id="yieldBalance" readonly placeholder="Not queried" />
+        <div class="help" id="yieldRateHint">Yield rate: loading...</div>
+        <div class="help">Yield token withdrawal is not available yet; it will open after Base launch.</div>
+        <button id="refreshYield" class="pixel-btn warn">Refresh Yield Balance</button>
       </article>
 
       <article class="card">
         <h2>📄 Quote</h2>
         <label>Payee Address</label>
-        <input id="payee" value="0x1111111111111111111111111111111111111111" readonly title="系统自动管理的收款方" />
+        <input id="payee" value="0x1111111111111111111111111111111111111111" readonly title="System-managed payee" />
         <label>Amount (USDC)</label>
-        <input id="amount" value="1.23" type="number" step="0.01" readonly title="金额由演示流程固定" />
+        <input id="amount" value="1.23" type="number" step="0.01" readonly title="Amount is fixed by demo flow" />
         <label>Order ID</label>
-        <input id="orderId" value="demo-order-" readonly title="订单ID由系统自动生成" />
-        <button id="createQuote" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Quote</button>
-        <label>最近 Quote</label>
-        <input id="quoteId" readonly placeholder="创建后自动填充" />
+        <input id="orderId" value="demo-order-" readonly title="Order ID is auto-generated by the system" />
+        <button id="createQuote" class="pixel-btn" disabled title="Manual create disabled in Agent-Only mode">Create Quote</button>
+        <label>Latest Quote</label>
+        <input id="quoteId" readonly placeholder="Auto-filled after creation" />
       </article>
 
       <article class="card">
         <h2>💼 Escrow</h2>
-        <button id="createEscrow" class="pixel-btn" disabled title="Agent-Only 模式下禁用手动创建">创建 Escrow（托管模拟）</button>
-        <button id="markDeposited" class="pixel-btn warn" disabled title="Agent-Only 模式下禁止手动入金">模拟标记已入金</button>
-        <button id="releaseEscrow" class="pixel-btn accent" disabled title="Agent-Only 模式下禁止手动释放">释放到 Payee</button>
+        <button id="createEscrow" class="pixel-btn" disabled title="Manual create disabled in Agent-Only mode">Create Escrow (Simulated)</button>
+        <button id="markDeposited" class="pixel-btn warn" disabled title="Manual deposit disabled in Agent-Only mode">Mark as Deposited (Sim)</button>
+        <button id="releaseEscrow" class="pixel-btn accent" disabled title="Manual release disabled in Agent-Only mode">Release to Payee</button>
         <label>Escrow ID</label>
-        <input id="escrowId" readonly placeholder="创建后自动填充" />
-        <pre id="escrowInfo" class="code">还没创建 escrow</pre>
+        <input id="escrowId" readonly placeholder="Auto-filled after creation" />
+        <pre id="escrowInfo" class="code">Escrow not created yet</pre>
       </article>
 
       <article class="card full demo-admin-only">
-        <h2>🎮 Event log</h2>
+        <h2>🎮 Event Log</h2>
         <div class="row">
-          <button id="clearLog" class="pixel-btn">清空日志</button>
+          <button id="clearLog" class="pixel-btn">Clear Logs</button>
         </div>
         <pre id="log" class="code"></pre>
 
-        <h3>📁 演示报告下载列表</h3>
-        <div id="reportList" class="report-list">暂无报告记录</div>
+        <h3>📁 Demo Report Downloads</h3>
+        <div id="reportList" class="report-list">No reports yet</div>
       </article>
     </section>
   
@@ -195,15 +195,15 @@
 </main>
 
   <div class="mobile-actions demo-admin-only">
-    <button id="runDemoMobile" class="pixel-btn">一键演示</button>
-    <button id="refreshState" class="pixel-btn warn">刷新状态</button>
+    <button id="runDemoMobile" class="pixel-btn">One-click Demo</button>
+    <button id="refreshState" class="pixel-btn warn">Refresh Status</button>
   </div>
 
   <div id="resultModal" class="modal" aria-hidden="true">
     <div class="modal-inner">
-      <div class="modal-title">🎉 演示结果</div>
-      <p id="resultText">结果内容</p>
-      <button id="modalClose" class="pixel-btn accent">我知道了</button>
+      <div class="modal-title">🎉 Demo Result</div>
+      <p id="resultText">Result details</p>
+      <button id="modalClose" class="pixel-btn accent">Got it</button>
     </div>
   </div>
 

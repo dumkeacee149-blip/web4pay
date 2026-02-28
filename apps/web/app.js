@@ -20,7 +20,7 @@ const state = {
   logLines: [],
   yieldBalance: '',
   yieldSymbol: 'YIELD',
-  yieldRateText: '收益率（演示年化口径）：读取中...',
+  yieldRateText: 'Yield rate (demo annualized): loading...',
   yieldTotalMinted: '',
   styleMode: (localStorage.getItem('web4pay_style_mode') === 'intense' ? 'intense' : 'subtle'),
 };
@@ -65,7 +65,7 @@ function setBusy(isBusy) {
 
   if (isBusy) {
     document.body.classList.add('running');
-    setToast('动作进行中...', 'loading');
+    setToast('Action in progress...', 'loading');
   } else {
     document.body.classList.remove('running');
   }
@@ -104,7 +104,7 @@ function setStep(name) {
 }
 
 
-function triggerRobotWink(message = '收到啦') {
+function triggerRobotWink(message = 'Got it') {
   const wrap = $('retroRobotWrap');
   const cornerWrap = $('cornerRobot');
   const bubble = $('robotSpeech');
@@ -137,7 +137,7 @@ function triggerRobotWink(message = '收到啦') {
   }, 800);
 }
 
-function setStatusProgress(percent, tagText = '等待开始', kind = 'default') {
+function setStatusProgress(percent, tagText = 'Waiting to Start', kind = 'default') {
   const fill = $('statusFill');
   const tag = $('statusTag');
   const sum = $('statusSummary');
@@ -160,7 +160,7 @@ function setToast(message, kind = '') {
 
 function downloadDemoReport() {
   if (!state.lastDemoReport) {
-    setToast('先运行一键演示再导出报告', 'warn');
+    setToast('Run one-click demo before exporting report', 'warn');
     return;
   }
 
@@ -199,7 +199,7 @@ async function createAgentRobust({ name, retries = 3 }) {
         throw err;
       }
       if (idx < retries - 1) {
-        log(`Agent name 重复，重试创建：${payloadName}`);
+        log(`Duplicate agent name, retrying: ${payloadName}`);
         continue;
       }
     }
@@ -234,7 +234,7 @@ function applyAgentOnlyView() {
     const el = $(id);
     if (el) {
       el.disabled = true;
-      el.title = 'Agent-Only 模式：仅允许一键流程执行';
+      el.title = 'Agent-Only mode: only one-click flow is allowed';
     }
   });
 
@@ -326,7 +326,7 @@ function reportToCsvRows(report) {
 
 function downloadDemoReportCsv() {
   if (!state.lastDemoReport) {
-    setToast('先运行一键演示再导出 CSV 报告', 'warn');
+    setToast('Run one-click demo before exporting CSV report', 'warn');
     return;
   }
 
@@ -385,7 +385,7 @@ function renderDemoReportHistory() {
   if (!state.demoReports.length) {
     const tip = document.createElement('div');
     tip.className = 'line';
-    tip.textContent = '暂无报告记录';
+    tip.textContent = 'No reports yet';
     list.appendChild(tip);
     return;
   }
@@ -405,14 +405,14 @@ function renderDemoReportHistory() {
     btn.type = 'button';
     btn.className = 'pixel-btn';
     btn.style.minHeight = '32px';
-    btn.textContent = '下载 JSON';
+    btn.textContent = 'Download JSON';
     btn.addEventListener('click', () => downloadPayload(item, `web4pay-demo-report-${idx}-${Date.now()}.json`));
 
     const csvBtn = document.createElement('button');
     csvBtn.type = 'button';
     csvBtn.className = 'pixel-btn warn';
     csvBtn.style.minHeight = '32px';
-    csvBtn.textContent = '下载 CSV';
+    csvBtn.textContent = 'Download CSV';
     csvBtn.addEventListener('click', () => downloadDemoReportPayloadAsCsv(item, `report-${idx}`));
 
     btnRow.appendChild(btn);
@@ -431,7 +431,7 @@ function applyStyleMode() {
   document.body.classList.add(`pixel-style-${mode}`);
   const btn = $('styleModeToggle');
   if (btn) {
-    btn.textContent = mode === 'intense' ? '🎨 风格：夸张' : '🎨 风格：轻量';
+    btn.textContent = mode === 'intense' ? '🎨 Style: Intense' : '🎨 Style: Subtle';
   }
   localStorage.setItem('web4pay_style_mode', mode);
 }
@@ -447,7 +447,7 @@ function updateUi() {
   if (walletEl) walletEl.value = state.agentWallet || '';
   const yieldEl = $('yieldBalance');
   if (yieldEl) {
-    const bal = state.yieldBalance !== '' ? state.yieldBalance : '未查询';
+    const bal = state.yieldBalance !== '' ? state.yieldBalance : 'Not queried';
     yieldEl.value = bal;
   }
   const rateHint = $('yieldRateHint');
@@ -517,14 +517,14 @@ async function request(path, options = {}) {
 
 function mapEscrowStatusToProgress(status) {
   switch (status) {
-    case 'TX_PENDING_DEPOSIT': return { p: 45, kind: 'warn', tag: '托管中（入金提交）' };
-    case 'DEPOSITED': return { p: 55, kind: 'success', tag: '托管确认入金' };
-    case 'TX_PENDING_RELEASE': return { p: 75, kind: 'warn', tag: '等待释放交易' };
-    case 'RELEASED': return { p: 100, kind: 'success', tag: '释放成功完成' };
-    case 'TX_PENDING_REFUND': return { p: 75, kind: 'warn', tag: '退款处理中' };
-    case 'REFUNDED': return { p: 100, kind: 'warn', tag: '已退款' };
-    case 'FAILED': return { p: 100, kind: 'error', tag: '流程失败' };
-    default: return { p: 30, kind: '', tag: '托管单已创建' };
+    case 'TX_PENDING_DEPOSIT': return { p: 45, kind: 'warn', tag: 'In Escrow (deposit submitted)' };
+    case 'DEPOSITED': return { p: 55, kind: 'success', tag: 'Escrow deposit confirmed' };
+    case 'TX_PENDING_RELEASE': return { p: 75, kind: 'warn', tag: 'Pending release transaction' };
+    case 'RELEASED': return { p: 100, kind: 'success', tag: 'Release completed' };
+    case 'TX_PENDING_REFUND': return { p: 75, kind: 'warn', tag: 'Refund in progress' };
+    case 'REFUNDED': return { p: 100, kind: 'warn', tag: 'Refunded' };
+    case 'FAILED': return { p: 100, kind: 'error', tag: 'Flow failed' };
+    default: return { p: 30, kind: '', tag: 'Escrow created' };
   }
 }
 
@@ -537,19 +537,19 @@ async function refreshEscrow() {
     if (data && data.status) {
       const mapped = mapEscrowStatusToProgress(data.status);
       setStatusProgress(mapped.p, mapped.tag, mapped.kind);
-      setToast(`当前状态: ${data.status}`, data.status === 'RELEASED' ? 'success' : '');
+      setToast(`Current status: ${data.status}`, data.status === 'RELEASED' ? 'success' : '');
       state.lastReleaseStatus = data.status;
       if (data.status === 'RELEASED') {
         setStep('release');
         setRobotState('success');
-        setToast('状态确认：已 RELEASED', 'success');
+        setToast('Status confirmed: RELEASED', 'success');
       }
     }
 
     return data;
   } catch (err) {
     setRobotState('error');
-    $('escrowInfo').textContent = `查询失败: ${err.message}`;
+    $('escrowInfo').textContent = `Query failed: ${err.message}`;
     return null;
   }
 }
@@ -590,10 +590,10 @@ function resetDemo() {
   $('agentId').value = '';
   $('quoteId').value = '';
   $('escrowId').value = '';
-  $('escrowInfo').textContent = '还没创建 escrow';
+  $('escrowInfo').textContent = 'Escrow not created yet';
   setRobotState('idle');
-  setToast('流程已重置', 'success');
-  setStatusProgress(0, '已重置流程', '');
+  setToast('Flow reset', 'success');
+  setStatusProgress(0, 'Flow reset', '');
   setStep(null);
   log('Demo state reset');
 }
@@ -605,27 +605,27 @@ bindClick('saveConfig', () => {
   localStorage.setItem('web4pay_api_base', state.apiBase);
   localStorage.setItem('web4pay_token', state.token);
   updateUi();
-  $('chainState').textContent = '配置已保存';
-  log('配置已更新');
-  setToast('配置已保存', 'success');
+  $('chainState').textContent = 'Config saved';
+  log('Config updated');
+  setToast('Config saved', 'success');
 });
 
 bindClick('checkChain', async () => {
-  setToast('检查链路中...', 'loading');
+  setToast('Checking chain...', 'loading');
   setBusy(true);
   try {
     const data = await request('/v1/chain', { method: 'GET', headers: {} });
     $('chainInfo').textContent = JSON.stringify(data, null, 2);
-    $('chainState').textContent = `已连通 (${data.name}/${data.chainId})`;
-    setToast('链路检查成功', 'success');
-    setStatusProgress(15, '链路已连通', 'success');
-    log('链路检查成功');
+    $('chainState').textContent = `Connected (${data.name}/${data.chainId})`;
+    setToast('Chain check passed', 'success');
+    setStatusProgress(15, 'Chain connected', 'success');
+    log('Chain check passed');
   } catch (err) {
-    $('chainInfo').textContent = `失败: ${err.message}`;
-    $('chainState').textContent = '链路失败';
-    setToast('链路检查失败', 'error');
-    setStatusProgress(0, '链路失败', 'error');
-    log(`链路失败: ${err.message}`);
+    $('chainInfo').textContent = `Failed: ${err.message}`;
+    $('chainState').textContent = 'Chain failed';
+    setToast('Chain check failed', 'error');
+    setStatusProgress(0, 'Chain failed', 'error');
+    log(`Chain failed: ${err.message}`);
   } finally {
     setBusy(false);
   }
@@ -633,37 +633,37 @@ bindClick('checkChain', async () => {
 
 bindClick('createAgent', async () => {
   if (AGENT_ONLY_MODE) {
-    setToast('当前是 Agent-Only 模式，手动创建已禁用', 'warn');
+    setToast('Agent-Only mode: manual create is disabled', 'warn');
     return;
   }
   const baseName = getAgentNameBase();
   const name = `${baseName}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   setStep('agent');
-  setToast('创建 Agent 中...', 'loading');
-  setStatusProgress(25, '创建 Agent', 'warn');
+  setToast('Creating Agent...', 'loading');
+  setStatusProgress(25, 'Create Agent', 'warn');
   try {
     const data = await createAgentRobust({ name, retries: 3 });
     state.agentId = data.agentId;
     setWalletFromResponse(data);
     updateUi();
-    log(`Agent 已创建: ${state.agentId}`);
+    log(`Agent created: ${state.agentId}`);
     await refreshYieldRateConfig().catch(() => {});
-    setToast('Agent 已创建', 'success');
-    setStatusProgress(30, 'Agent 已创建', 'success');
+    setToast('Agent created', 'success');
+    setStatusProgress(30, 'Agent created', 'success');
   } catch (err) {
-    setToast('创建 Agent 失败', 'error');
-    setStatusProgress(15, '创建 Agent 失败', 'error');
-    log(`创建 Agent 失败: ${err.message}`);
+    setToast('Create Agent failed', 'error');
+    setStatusProgress(15, 'Create Agent failed', 'error');
+    log(`Create Agent Failed: ${err.message}`);
   }
 });
 
 bindClick('createQuote', async () => {
   if (AGENT_ONLY_MODE) {
-    setToast('当前是 Agent-Only 模式，手动创建已禁用', 'warn');
+    setToast('Agent-Only mode: manual create is disabled', 'warn');
     return;
   }
   if (!state.agentId) {
-    alert('请先创建 Agent');
+    alert('Create Agent first');
     return;
   }
 
@@ -678,8 +678,8 @@ bindClick('createQuote', async () => {
     orderId: `${order}-${Date.now()}`,
   };
   setStep('quote');
-  setStatusProgress(38, '创建 Quote', 'warn');
-  setToast('创建 Quote 中...', 'loading');
+  setStatusProgress(38, 'Create Quote', 'warn');
+  setToast('Creating Quote...', 'loading');
 
   try {
     const data = await request('/v1/quotes', {
@@ -690,28 +690,28 @@ bindClick('createQuote', async () => {
     });
     state.quoteId = data.quoteId;
     updateUi();
-    log(`Quote 已创建: ${state.quoteId}`);
-    setToast('Quote 已创建', 'success');
-    setStatusProgress(42, 'Quote 已创建', 'success');
+    log(`Quote created: ${state.quoteId}`);
+    setToast('Quote created', 'success');
+    setStatusProgress(42, 'Quote created', 'success');
   } catch (err) {
-    setToast('创建 Quote 失败', 'error');
-    setStatusProgress(30, '创建 Quote 失败', 'error');
-    log(`创建 Quote 失败: ${err.message}`);
+    setToast('Create Quote failed', 'error');
+    setStatusProgress(30, 'Create Quote failed', 'error');
+    log(`Create Quote Failed: ${err.message}`);
   }
 });
 
 bindClick('createEscrow', async () => {
   if (AGENT_ONLY_MODE) {
-    setToast('当前是 Agent-Only 模式，手动流程已禁用', 'warn');
+    setToast('Agent-Only mode: manual flow is disabled', 'warn');
     return;
   }
   if (!state.quoteId) {
-    alert('请先创建 Quote');
+    alert('Create Quote first');
     return;
   }
   setStep('escrow');
-  setToast('创建 Escrow 中...', 'loading');
-  setStatusProgress(52, '创建 Escrow', 'warn');
+  setToast('Creating Escrow...', 'loading');
+  setStatusProgress(52, 'Creating Escrow', 'warn');
   try {
     const data = await request('/v1/escrows', {
       method: 'POST',
@@ -721,24 +721,24 @@ bindClick('createEscrow', async () => {
     });
     state.escrowId = data.escrowId;
     updateUi();
-    log(`Escrow 已创建: ${state.escrowId}`);
+    log(`Escrow created: ${state.escrowId}`);
     await refreshEscrow();
-    setToast('Escrow 已创建', 'success');
+    setToast('Escrow created', 'success');
   } catch (err) {
-    setToast('创建 Escrow 失败', 'error');
-    setStatusProgress(42, '创建 Escrow 失败', 'error');
-    log(`创建 Escrow 失败: ${err.message}`);
+    setToast('Failed to create Escrow', 'error');
+    setStatusProgress(42, 'Failed to create Escrow', 'error');
+    log(`Failed to create Escrow: ${err.message}`);
   }
 });
 
 bindClick('markDeposited', async () => {
   if (AGENT_ONLY_MODE) {
-    setToast('当前是 Agent-Only 模式，手动入金已禁用', 'warn');
+    setToast('Agent-Only mode: manual deposit is disabled', 'warn');
     return;
   }
-  if (!state.escrowId) return alert('请先创建 Escrow');
-  setStatusProgress(65, '模拟入金中', 'warn');
-  setToast('标记入金中...', 'loading');
+  if (!state.escrowId) return alert('Please create an Escrow first');
+  setStatusProgress(65, 'Marking deposit', 'warn');
+  setToast('Marking deposited...', 'loading');
   try {
     await request(`/internal/dev/escrows/${state.escrowId}/markDeposited`, {
       method: 'POST',
@@ -746,24 +746,24 @@ bindClick('markDeposited', async () => {
       body: JSON.stringify({ ok: true }),
       retries: 2,
     });
-    log(`已手动标记入金: ${state.escrowId}`);
+    log(`Deposit marked manually: ${state.escrowId}`);
     await refreshEscrow();
-    setToast('入金标记完成', 'success');
+    setToast('Deposit mark completed', 'success');
   } catch (err) {
-    setToast('标记入金失败', 'error');
-    log(`标记入金失败: ${err.message}`);
+    setToast('Failed to mark deposited', 'error');
+    log(`Failed to mark deposited: ${err.message}`);
   }
 });
 
 bindClick('releaseEscrow', async () => {
   if (AGENT_ONLY_MODE) {
-    setToast('当前是 Agent-Only 模式，手动释放已禁用', 'warn');
+    setToast('Agent-Only mode: manual release is disabled', 'warn');
     return;
   }
-  if (!state.escrowId) return alert('请先创建 Escrow');
+  if (!state.escrowId) return alert('Please create an Escrow first');
   setStep('release');
-  setToast('Release 发起中...', 'loading');
-  setStatusProgress(80, '发起 Release', 'warn');
+  setToast('Starting release...', 'loading');
+  setStatusProgress(80, 'Starting release', 'warn');
   try {
     const data = await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
@@ -771,12 +771,12 @@ bindClick('releaseEscrow', async () => {
       body: JSON.stringify({ deliverableHash: `0x${Math.floor(Math.random() * 1e16).toString(16).padStart(16, '0')}` }),
       retries: 2,
     });
-    log(`Release 已发起: status=${data.status}`);
+    log(`Release started: status=${data.status}`);
     await refreshEscrow();
-    setToast('Release 已发起', 'success');
+    setToast('Release started', 'success');
   } catch (err) {
-    setToast('Release 失败', 'error');
-    log(`Release 失败: ${err.message}`);
+    setToast('Release failed', 'error');
+    log(`Release failed: ${err.message}`);
   }
 });
 
@@ -791,11 +791,11 @@ async function refreshAgentWallet() {
     const data = await request(`/v1/agents/${state.agentId}`, { method: 'GET', headers: {} });
     setWalletFromResponse(data);
     updateUi();
-    log(`已刷新 Agent 钱包: ${state.agentWallet}`);
+    log(`Agent wallet refreshed: ${state.agentWallet}`);
     refreshYieldBalance().catch(() => {});
     return data;
   } catch (err) {
-    log(`刷新钱包失败: ${err.message}`);
+    log(`Failed to refresh wallet: ${err.message}`);
     throw err;
   }
 }
@@ -806,10 +806,10 @@ function normalizeHexAddr(addr) {
 
 function setWalletBadge(addr) {
   if (!addr) {
-    setToast('钱包未绑定，暂不能接收收益', 'warn');
+    setToast('Wallet not linked; cannot receive yield yet', 'warn');
     return;
   }
-  setToast(`收益钱包：${addr.slice(0, 8)}...${addr.slice(-6)}`, 'success');
+  setToast(`Yield wallet: ${addr.slice(0, 8)}...${addr.slice(-6)}`, 'success');
 }
 
 
@@ -827,14 +827,14 @@ async function refreshYieldRateConfig() {
     const config = await request('/v1/yield/config', { method: 'GET', headers: {} });
     const bps = Number(config?.rateBps);
     if (Number.isFinite(bps) && bps >= 0) {
-      state.yieldRateText = `收益率（演示年化口径）：${(bps / 100).toFixed(2)}%（基点 ${bps}）`;
-      log(`收益率配置已刷新: ${state.yieldRateText}`);
+      state.yieldRateText = `Yield rate (demo annualized): ${(bps / 100).toFixed(2)}% (bps ${bps} )`;
+      log(`Yield config refreshed: ${state.yieldRateText}`);
     } else {
-      state.yieldRateText = '收益率（演示年化口径）：5.00%（基点 500，默认）';
+      state.yieldRateText = 'Yield rate (demo annualized): 5.00% (500 bps, default)';
     }
     updateUi();
   } catch (err) {
-    state.yieldRateText = '收益率（演示年化口径）：读取失败';
+    state.yieldRateText = 'Yield rate (demo annualized): failed to load';
     updateUi();
     throw err;
   }
@@ -842,7 +842,7 @@ async function refreshYieldRateConfig() {
 
 async function refreshYieldBalance() {
   if (!state.agentId) {
-    setToast('先创建 Agent 再查询收益余额', 'warn');
+    setToast('Create Agent before querying yield balance', 'warn');
     return;
   }
   try {
@@ -852,10 +852,10 @@ async function refreshYieldBalance() {
     state.yieldBalance = `${y.balance}`;
     state.yieldTotalMinted = `${y.totalMinted}`;
     updateUi();
-    log(`收益余额已刷新: ${state.yieldSymbol} ${state.yieldBalance}`);
-    setToast(`当前收益: ${state.yieldSymbol} ${state.yieldBalance}`, 'success');
+    log(`Yield balance refreshed: ${state.yieldSymbol} ${state.yieldBalance}`);
+    setToast(`Current yield: ${state.yieldSymbol} ${state.yieldBalance}`, 'success');
   } catch (err) {
-    state.yieldBalance = '查询失败';
+    state.yieldBalance = 'Query failed';
     state.yieldTotalMinted = '';
     updateUi();
     throw err;
@@ -865,17 +865,17 @@ async function refreshYieldBalance() {
 
 async function connectWalletForAgent() {
   if (!state.agentId) {
-    setToast('先创建 Agent 再绑定钱包', 'warn');
+    setToast('Create Agent before linking wallet', 'warn');
     return;
   }
 
   const provider = window.ethereum;
   if (!provider || typeof provider.request !== 'function') {
-    const manual = prompt('未检测到钱包扩展，请输入要绑定的钱包地址（0x...）');
+    const manual = prompt('Wallet extension not found. Enter wallet address to bind (0x...)');
     if (!manual) return;
 
     const walletAddress = manual.trim();
-    setToast('手动更新钱包地址中...', 'loading');
+    setToast('Updating wallet address manually...', 'loading');
     try {
       await request(`/v1/agents/${state.agentId}/wallet`, {
         method: 'PUT',
@@ -885,9 +885,9 @@ async function connectWalletForAgent() {
       });
       await refreshAgentWallet();
       setWalletBadge(normalizeHexAddr(walletAddress));
-      setToast('钱包已手动绑定', 'success');
+      setToast('Wallet linked manually', 'success');
     } catch (err) {
-      setToast(`绑定钱包失败: ${err.message}`, 'error');
+      setToast(`Failed to link wallet: ${err.message}`, 'error');
     }
     return;
   }
@@ -896,7 +896,7 @@ async function connectWalletForAgent() {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : '';
     if (!account) {
-      setToast('未拿到可用账户', 'warn');
+      setToast('No account received', 'warn');
       return;
     }
     await request(`/v1/agents/${state.agentId}/wallet`, {
@@ -908,17 +908,17 @@ async function connectWalletForAgent() {
     state.agentWallet = account;
     updateUi();
     setWalletBadge(normalizeHexAddr(account));
-    setToast('钱包已连接并绑定', 'success');
+    setToast('Wallet connected and linked', 'success');
   } catch (err) {
-    setToast(`钱包连接失败: ${err.message}`, 'error');
-    log(`连接钱包失败: ${err.message}`);
+    setToast(`Wallet connection failed: ${err.message}`, 'error');
+    log(`Connect wallet failed: ${err.message}`);
   }
 }
 
 bindClick('clearLog', () => {
   $('log').textContent = '';
   state.logLines = [];
-  log('日志已清空');
+  log('Logs cleared');
 });
 
 bindClick('downloadLog', () => {
@@ -932,32 +932,32 @@ bindClick('downloadLog', () => {
 
 bindClick('refreshWallet', async () => {
   if (!state.agentId) {
-    setToast('先创建 Agent 再刷新钱包', 'warn');
+    setToast('Create Agent before refreshing wallet', 'warn');
     return;
   }
   await refreshAgentWallet();
-  setToast('钱包信息已刷新', 'success');
+  setToast('Wallet info refreshed', 'success');
 });
 
 bindClick('refreshYield', async () => {
   await refreshYieldBalance();
-  setToast('收益余额已刷新', 'success');
+  setToast('Yield balance refreshed', 'success');
 });
 
 bindClick('connectWallet', connectWalletForAgent);
 bindClick('styleModeToggle', () => {
   state.styleMode = state.styleMode === 'intense' ? 'subtle' : 'intense';
   applyStyleMode();
-  setToast(`已切换为 ${state.styleMode === 'intense' ? '夸张' : '轻量'} 风格`, 'success');
+  setToast(`Switched to ${state.styleMode === 'intense' ? 'Intense' : 'Subtle'} style`, 'success');
 });
 
 bindClick('refreshState', async () => {
   if (!state.escrowId) {
-    setToast('先创建 Escrow 再刷新', 'warn');
+    setToast('Create Escrow before refreshing', 'warn');
     return;
   }
   await refreshEscrow();
-  setToast('状态已刷新', 'success');
+  setToast('Status refreshed', 'success');
 });
 
 bindClick('resetDemo', resetDemo);
@@ -970,10 +970,10 @@ bindClick('runDemoMobile', runDemo);
 async function runDemo() {
   setBusy(true);
   setStep('agent');
-  setStatusProgress(5, '开始演示', 'loading');
+  setStatusProgress(5, 'Starting demo', 'loading');
   setRobotState('agent');
-  setToast('开始自动演示...', 'loading');
-  triggerRobotWink('开始一键演示，启动啦 🚀');
+  setToast('Starting auto demo...', 'loading');
+  triggerRobotWink('Starting one-click demo 🚀');
   const report = {
     startedAt: new Date().toISOString(),
     apiBase: state.apiBase,
@@ -986,10 +986,10 @@ async function runDemo() {
     const chain = await request('/v1/chain', { method: 'GET', headers: {}, retries: 2 });
     report.chain = chain;
     report.steps.push({ step: 'chain', ok: true, payload: chain });
-    $('chainState').textContent = `已连通 (${chain.name}/${chain.chainId})`;
-    log(`链路已检测: ${chain.name} ${chain.chainId}`);
+    $('chainState').textContent = `Connected (${chain.name}/${chain.chainId})`;
+    log(`Chain checked: ${chain.name} ${chain.chainId}`);
     document.body.style.setProperty('--last-beat', Date.now().toString());
-  setStatusProgress(10, '链路检测通过', 'success');
+  setStatusProgress(10, 'Chain check passed', 'success');
 
     const agentId = await ensureAgentForDemo();
     state.agentId = agentId;
@@ -1002,7 +1002,7 @@ async function runDemo() {
     $('agentId').value = state.agentId;
     setStep('quote');
     setRobotState('quote');
-    setStatusProgress(25, 'Agent 已生成', 'success');
+    setStatusProgress(25, 'Agent ready', 'success');
 
     if (!state.agentWallet) {
       await refreshAgentWallet().catch(() => {});
@@ -1028,7 +1028,7 @@ async function runDemo() {
     $('quoteId').value = state.quoteId;
     setStep('escrow');
     setRobotState('escrow');
-    setStatusProgress(42, 'Quote 已生成', 'success');
+    setStatusProgress(42, 'Quote ready', 'success');
 
     const escrow = await request('/v1/escrows', {
       method: 'POST',
@@ -1040,7 +1040,7 @@ async function runDemo() {
     report.escrowId = state.escrowId;
     report.steps.push({ step: 'escrow', ok: true, escrowId: state.escrowId, status: escrow.status || 'CREATED' });
     $('escrowId').value = state.escrowId;
-    setStatusProgress(55, 'Escrow 已创建', 'success');
+    setStatusProgress(55, 'Escrow created', 'success');
 
     await request(`/internal/dev/escrows/${state.escrowId}/markDeposited`, {
       method: 'POST',
@@ -1049,11 +1049,11 @@ async function runDemo() {
       retries: 2,
     });
     report.steps.push({ step: 'markDeposited', ok: true });
-    setStatusProgress(68, '已入金', 'success');
+    setStatusProgress(68, 'Deposited', 'success');
 
     setStep('release');
     setRobotState('release');
-    setStatusProgress(80, 'Release 准备中', 'warn');
+    setStatusProgress(80, 'Preparing release', 'warn');
 
     const released = await request(`/v1/escrows/${state.escrowId}/release`, {
       method: 'POST',
@@ -1066,7 +1066,7 @@ async function runDemo() {
     await refreshEscrow();
 
     if (released && released.status === 'TX_PENDING_RELEASE') {
-      setStatusProgress(95, 'Release 已提交', 'warn');
+      setStatusProgress(95, 'Release Submitted', 'warn');
     }
 
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -1083,14 +1083,14 @@ async function runDemo() {
       state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
       persistDemoReports();
       renderDemoReportHistory();
-      setStatusProgress(100, '一键演示完成：流程跑通', 'success');
-      setToast('一键演示完成：成功跑通主流程', 'success');
+      setStatusProgress(100, 'One-click demo complete: flow passed', 'success');
+      setToast('One-click demo complete: core flow passed', 'success');
       setTimeout(() => {
         const t = $('resultToast');
         t.classList.remove('success');
       }, 900);
-      log(`一键演示完成 | ${state.escrowId}`);
-      showResultModal(`本次演示完成\nEscrow: ${state.escrowId}\n最终状态: ${esc.status}\n可通过按钮继续进行下一轮。`, true);
+      log(`One-click DemoCompleted | ${state.escrowId}`);
+      showResultModal(`Demo completed\nEscrow: ${state.escrowId}\nFinal status: ${esc.status}\nUse buttons to run another round.`, true);
     } else {
       report.steps.push({ step: 'finalCheck', ok: false, status: esc ? esc.status : 'unknown' });
       report.finishedAt = new Date().toISOString();
@@ -1101,8 +1101,8 @@ async function runDemo() {
       state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
       persistDemoReports();
       renderDemoReportHistory();
-      setStatusProgress(85, '等待 watcher 完成', 'warn');
-      showResultModal('演示已提交 Release，但后端状态未立刻更新。请稍后刷新状态。', false);
+      setStatusProgress(85, 'Waiting for watcher', 'warn');
+      showResultModal('Release submitted, but backend status is not updated yet. Please refresh later.', false);
     }
   } catch (err) {
     report.steps.push({ step: 'error', ok: false, error: err.message });
@@ -1114,10 +1114,10 @@ async function runDemo() {
     state.demoReports = state.demoReports.slice(0, MAX_DEMO_REPORTS);
     persistDemoReports();
     renderDemoReportHistory();
-    setToast(`演示中断: ${err.message}`, 'error');
-    log(`一键演示失败: ${err.message}`);
-    setStatusProgress(0, '演示失败', 'error');
-    showResultModal(`演示失败：${err.message}`, false);
+    setToast(`Demo interrupted: ${err.message}`, 'error');
+    log(`One-click DemoFailed: ${err.message}`);
+    setStatusProgress(0, 'Demo failed', 'error');
+    showResultModal(`Demo failed：${err.message}`, false);
   } finally {
     setBusy(false);
   }
@@ -1140,8 +1140,8 @@ setRobotState('idle');
 applyStyleMode();
 applyAgentOnlyView();
 updateUi();
-log('Pixel Console 已启动（Agent-Only）');
+log('Pixel Console started (Agent-Only)');
 $('apiBaseLabel').textContent = state.apiBase;
-setToast('等待操作', '');
-setStatusProgress(0, '等待开始', '');
+setToast('Waiting for action', '');
+setStatusProgress(0, 'Waiting to Start', '');
 setStep(null);
