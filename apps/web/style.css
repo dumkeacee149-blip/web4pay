@@ -2051,3 +2051,39 @@ body {
 .stepper span {
   text-shadow: 0 0 2px rgba(120, 196, 255, 0.22) !important;
 }
+
+/* tone tweak: cooler palette pass */
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(95, 220, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 84% 10%, rgba(122, 156, 255, 0.14), transparent 30%),
+    linear-gradient(180deg, #101b42 0%, #0d1a3d 48%, #0b1838 100%) !important;
+}
+
+.hero-copy h1 {
+  background: linear-gradient(180deg, #2d4f84, #1f3d6c) !important;
+  border-color: #8ec8ff !important;
+  color: #e4f2ff !important;
+}
+
+.hero-badges span,
+.badges span {
+  background: linear-gradient(180deg, #0d2448, #0a1c3b) !important;
+  border-color: #7ad9ff !important;
+  color: #d4efff !important;
+}
+
+.pixel-btn.warn {
+  background: linear-gradient(180deg, #d6dd7c, #adb95a) !important;
+  color: #1f2a06 !important;
+}
+
+.pixel-btn.accent {
+  background: linear-gradient(180deg, #c28dfc, #9e6be8) !important;
+  color: #190a35 !important;
+}
+
+.card h2,
+.sub {
+  color: #b8dcff !important;
+}
