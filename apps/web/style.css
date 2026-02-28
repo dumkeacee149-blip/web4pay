@@ -1566,3 +1566,91 @@ input, .code, .status-summary, .report-list {
   .market-scene { min-height: 300px !important; }
   .scene-core { min-height: 272px !important; background-position: center top !important; }
 }
+
+/* ===== final polish: unify panels with reference art palette ===== */
+:root {
+  --panel: #111837;
+  --ink: #d8edff;
+  --ink-dim: #8ea9d7;
+  --line: #63ddff;
+}
+
+.console {
+  gap: 10px;
+}
+
+.badges span {
+  border-color: #6edcff;
+  background: linear-gradient(180deg, rgba(10, 20, 42, 0.95), rgba(8, 14, 30, 0.95));
+  box-shadow: 0 0 8px rgba(99, 221, 255, 0.22);
+}
+
+.card,
+.status-board,
+.runcard {
+  border: 2px solid #63ddff !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(12, 20, 44, 0.96), rgba(8, 14, 32, 0.98)) !important;
+  box-shadow: inset 0 0 0 1px rgba(125, 208, 255, 0.16), 0 0 14px rgba(72, 173, 255, 0.12) !important;
+}
+
+.card::after {
+  border-color: rgba(95, 168, 235, 0.32);
+}
+
+.card h2 {
+  color: #9ae9ff !important;
+  text-shadow: 0 0 8px rgba(111, 220, 255, 0.45);
+}
+
+label {
+  color: #94b3dc;
+  font-size: 10px;
+}
+
+input,
+.code,
+.status-summary,
+.report-list,
+.stepper span,
+.toast,
+.status-track {
+  border-color: #3c66ad !important;
+  background: #0a1430 !important;
+  color: #cde6ff;
+}
+
+.stepper span.active {
+  background: linear-gradient(180deg, #66eaff, #3dc7ff) !important;
+  color: #08223f !important;
+  border-color: #58d5ff !important;
+}
+
+.pixel-btn {
+  min-height: 40px;
+  border: 2px solid #2b5d8f !important;
+  background: linear-gradient(180deg, #69ecff, #3fc9ff) !important;
+  color: #062341 !important;
+  font-size: 12px;
+  box-shadow: 0 0 10px rgba(90, 219, 255, 0.26);
+}
+
+.pixel-btn.warn {
+  background: linear-gradient(180deg, #ffe27b, #ffc552) !important;
+  color: #3c2503 !important;
+}
+
+.pixel-btn.accent {
+  background: linear-gradient(180deg, #ff8ee9, #ff65cf) !important;
+  color: #3b0831 !important;
+}
+
+.modal-inner {
+  background: #101a36;
+  border-color: #61dcff;
+}
+
+@media (max-width: 620px) {
+  .pixel-btn { font-size: 11px; }
+}
