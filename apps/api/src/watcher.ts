@@ -12,6 +12,11 @@ type EscrowRow = {
   payer_agent_id?: string;
 };
 
+function isBaseLaunched(): boolean {
+  const v = (process.env.BASE_LAUNCHED ?? "0").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 interface WatcherConfig {
   pollMs: number;
   settleMs: number;
@@ -80,6 +85,30 @@ async function issueYieldToken(pool: any, escrowRow: { id: string; tenant_id: st
   );
 }
 
+async function burnYieldIfRefundedBeforeBaseLaunch(pool: any, row: { tenant_id: string; id: string; payer_agent_id: string }) {
+  if (isBaseLaunched()) return;
+
+  const minted = await pool.query<{ amount_numeric: string }>(
+    "select amount_numeric from yield_ledger where tenant_id = $1 and escrow_id = $2 and action = 'MINT' limit 1",
+    [row.tenant_id, row.id],
+  );
+
+  const amount = Number(minted.rows[0]?.amount_numeric ?? "0");
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+
+  await pool.query(
+    "insert into yield_ledger (tenant_id, agent_id, escrow_id, action, amount_numeric, token_symbol, source_currency, exchange_rate, tx_hash, meta) values ($1, $2, $3, 'BURN', $4, 'YIELD', 'USDC', 1, null, $5) on conflict (tenant_id, escrow_id, action) do nothing",
+    [row.tenant_id, row.payer_agent_id, row.id, amount.toString(), JSON.stringify({ reason: 'principal withdrawn before base launch' })],
+  );
+
+  await pool.query(
+    "update yield_balances set amount_numeric = greatest(0, amount_numeric - $3) where tenant_id = $1 and agent_id = $2 and token_symbol = 'YIELD'",
+    [row.tenant_id, row.payer_agent_id, amount.toString()],
+  );
+}
+
 async function processEscrows(pool: any, settleMs: number) {
   const settleAtClause = new Date(Date.now() - settleMs).toISOString();
 
@@ -94,9 +123,9 @@ async function processEscrows(pool: any, settleMs: number) {
   )) as { rows: Array<EscrowRow & { tenant_id: string; amount_numeric: string; currency: string; payer_agent_id: string }> };
 
   const pendingRefunds = (await pool.query(
-    "select id, quote_id, updated_at, deadline_at from escrows where status = $1 and updated_at <= $2",
+    "select e.id, e.quote_id, e.updated_at, e.deadline_at, e.tenant_id, q.payer_agent_id from escrows e join quotes q on q.id = e.quote_id where e.status = $1 and e.updated_at <= $2",
     ["TX_PENDING_REFUND", settleAtClause],
-  )) as { rows: EscrowRow[] };
+  )) as { rows: Array<EscrowRow & { tenant_id: string; payer_agent_id: string }> };
 
   for (const row of pendingDeposits.rows) {
     await pool.query("update escrows set status = $1 where id = $2", ["DEPOSITED", row.id]);
@@ -111,7 +140,8 @@ async function processEscrows(pool: any, settleMs: number) {
 
   for (const row of pendingRefunds.rows) {
     await pool.query("update escrows set status = $1 where id = $2", ["REFUNDED", row.id]);
-    console.log(JSON.stringify({ event: "watcher.refunded", escrowId: row.id, quoteId: row.quote_id }));
+    await burnYieldIfRefundedBeforeBaseLaunch(pool, row);
+    console.log(JSON.stringify({ event: "watcher.refunded", escrowId: row.id, quoteId: row.quote_id, yieldBurnedWhenBaseUnlaunched: !isBaseLaunched() }));
   }
 
   const missedDepositEscrows = (await pool.query(

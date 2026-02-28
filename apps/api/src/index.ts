@@ -140,11 +140,14 @@ async function main() {
     const bpsText = process.env.YIELD_RATE_BPS?.trim();
     const parsed = Number(bpsText);
     const rateBps = Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 500;
+    const baseLaunched = ["1", "true", "yes"].includes((process.env.BASE_LAUNCHED ?? "0").trim().toLowerCase());
     return {
       rateBps,
       rateDecimal: `${(rateBps / 10000).toFixed(4)}`,
       note: rateBps === 500 ? "default 5% (demo)" : "custom",
-      annualizedHint: "此为演示口径的年化收益率示例",
+      annualizedHint: "Demo annualized rate for simulation only",
+      baseLaunched,
+      yieldRedeemable: baseLaunched,
     };
   });
 
@@ -472,9 +475,10 @@ async function main() {
       const deliverableHash = requireString("deliverableHash", body.deliverableHash);
 
       const escrow = await requireEscrowForUpdate(request.tenantId, escrowId);
-      if (escrow.status !== "DEPOSITED" && escrow.status !== "TX_PENDING_DEPOSIT") {
+      if (escrow.status !== "DEPOSITED") {
         throw new ApiError(409, "Escrow not releasable in current state", {
           code: "conflict",
+          detail: "Escrow must be DEPOSITED before release",
         });
       }
 
@@ -504,9 +508,10 @@ async function main() {
       const reason = requireString("reason", body.reason);
 
       const escrow = await requireEscrowForUpdate(request.tenantId, escrowId);
-      if (escrow.status !== "DEPOSITED" && escrow.status !== "TX_PENDING_DEPOSIT") {
+      if (escrow.status !== "DEPOSITED") {
         throw new ApiError(409, "Escrow not refundable in current state", {
           code: "conflict",
+          detail: "Escrow must be DEPOSITED before refund",
         });
       }
 
