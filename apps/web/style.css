@@ -2087,3 +2087,69 @@ body {
 .sub {
   color: #b8dcff !important;
 }
+
+/* typography/layout polish for form hint text */
+.grid .card {
+  padding: 12px 12px 10px !important;
+}
+
+label {
+  font-size: 8px !important;
+  line-height: 1.25;
+  letter-spacing: 0.6px;
+  margin-top: 7px;
+  margin-bottom: 2px;
+  color: #9db8e1 !important;
+}
+
+input {
+  font-size: 14px !important;
+  line-height: 1.2;
+  padding: 9px 10px !important;
+  letter-spacing: 0.2px;
+}
+
+input::placeholder {
+  font-size: 12px;
+  opacity: 0.72;
+  letter-spacing: 0.15px;
+}
+
+.pixel-btn {
+  font-size: 9px !important;
+  line-height: 1.1;
+  padding: 9px 8px !important;
+}
+
+.help,
+.help-block,
+.status-summary,
+#chainInfo,
+#escrowInfo,
+#resultText,
+#yieldRateHint {
+  font-family: "VT323", monospace !important;
+  font-size: 12px !important;
+  line-height: 1.28 !important;
+  letter-spacing: 0.1px;
+}
+
+#chainInfo,
+#escrowInfo,
+#log {
+  padding: 8px !important;
+}
+
+#yieldRateHint {
+  margin-top: 6px;
+  color: #a4c3ee !important;
+}
+
+.card h2 {
+  margin-bottom: 10px !important;
+}
+
+@media (max-width: 620px) {
+  input { font-size: 13px !important; }
+  .pixel-btn { font-size: 8px !important; }
+}
