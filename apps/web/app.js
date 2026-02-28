@@ -22,6 +22,8 @@ const state = {
   yieldSymbol: 'YIELD',
   yieldRateText: 'Yield rate (demo annualized): loading...',
   yieldTotalMinted: '',
+  baseLaunched: false,
+  yieldRedeemable: false,
   styleMode: (localStorage.getItem('web4pay_style_mode') === 'intense' ? 'intense' : 'subtle'),
 };
 
@@ -826,11 +828,13 @@ async function refreshYieldRateConfig() {
   try {
     const config = await request('/v1/yield/config', { method: 'GET', headers: {} });
     const bps = Number(config?.rateBps);
+    state.baseLaunched = Boolean(config?.baseLaunched);
+    state.yieldRedeemable = Boolean(config?.yieldRedeemable);
     if (Number.isFinite(bps) && bps >= 0) {
-      state.yieldRateText = `Yield rate (demo annualized): ${(bps / 100).toFixed(2)}% (bps ${bps} )`;
+      state.yieldRateText = `Yield rate (demo annualized): ${(bps / 100).toFixed(2)}% (bps ${bps}) · Redeem ${state.yieldRedeemable ? 'enabled' : 'disabled'}`;
       log(`Yield config refreshed: ${state.yieldRateText}`);
     } else {
-      state.yieldRateText = 'Yield rate (demo annualized): 5.00% (500 bps, default)';
+      state.yieldRateText = `Yield rate (demo annualized): 5.00% (500 bps, default) · Redeem ${state.yieldRedeemable ? 'enabled' : 'disabled'}`;
     }
     updateUi();
   } catch (err) {
@@ -944,6 +948,43 @@ bindClick('refreshYield', async () => {
   setToast('Yield balance refreshed', 'success');
 });
 
+async function withdrawYield() {
+  if (!state.agentId) {
+    setToast('Create Agent before withdrawing yield', 'warn');
+    return;
+  }
+
+  await refreshYieldRateConfig().catch(() => {});
+  if (!state.yieldRedeemable) {
+    setToast('Yield withdraw is disabled until Base launch', 'warn');
+    return;
+  }
+
+  const amountText = prompt('Withdraw YIELD amount (leave empty for full balance):', '');
+  if (amountText === null) return;
+
+  const payload = {};
+  if (amountText.trim()) payload.amount = amountText.trim();
+
+  setToast('Withdrawing yield...', 'loading');
+  try {
+    const data = await request(`/v1/agents/${state.agentId}/yield/withdraw`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': randomId('yield-withdraw') },
+      body: JSON.stringify(payload),
+      retries: 1,
+    });
+
+    await refreshYieldBalance();
+    setToast(`Yield withdrawn: ${data.withdrawnAmount}`, 'success');
+    log(`Yield withdrawn: ${data.withdrawnAmount}, remaining: ${data.remainingBalance}`);
+  } catch (err) {
+    setToast(`Yield withdraw failed: ${err.message}`, 'error');
+    log(`Yield withdraw failed: ${err.message}`);
+  }
+}
+
+bindClick('withdrawYield', withdrawYield);
 bindClick('connectWallet', connectWalletForAgent);
 bindClick('styleModeToggle', () => {
   state.styleMode = state.styleMode === 'intense' ? 'subtle' : 'intense';
