@@ -1963,3 +1963,27 @@ input,
 .hidden-by-role {
   display: none !important;
 }
+
+/* hotfix: smooth left logo block (remove abrupt duplicate frame/line) */
+.hero-side-left {
+  justify-content: center !important;
+  width: 84px !important;
+}
+
+.robot-wrap {
+  width: 64px !important;
+  height: 64px !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+#retroRobot,
+#retroRobotWrap .hero-art {
+  width: 64px !important;
+  height: 64px !important;
+  object-fit: cover;
+  filter: none !important;
+  animation: none !important;
+}
