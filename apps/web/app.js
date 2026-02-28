@@ -4,6 +4,7 @@ const DEMO_REPORT_STORAGE_KEY = 'web4pay_demo_reports_v1';
 const MAX_DEMO_REPORTS = 10;
 const AGENT_STORAGE_KEY = 'web4pay_default_agent_id';
 const AGENT_ONLY_MODE = true;
+const UI_ROLE_STORAGE_KEY = 'web4pay_ui_role';
 
 
 const state = {
@@ -30,6 +31,31 @@ const stepElements = {
   escrow: $('step-escrow'),
   release: $('step-release'),
 };
+
+function shouldShowAdminPanels() {
+  const params = new URLSearchParams(window.location.search);
+  const adminQuery = params.get('admin');
+
+  if (adminQuery === '1') {
+    localStorage.setItem(UI_ROLE_STORAGE_KEY, 'admin');
+  } else if (adminQuery === '0') {
+    localStorage.removeItem(UI_ROLE_STORAGE_KEY);
+  }
+
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (isLocalHost) return true;
+
+  const role = localStorage.getItem(UI_ROLE_STORAGE_KEY) || '';
+  return role === 'admin';
+}
+
+function applyAdminPanelVisibility() {
+  const visible = shouldShowAdminPanels();
+  const nodes = document.querySelectorAll('.demo-admin-only');
+  nodes.forEach((el) => {
+    el.classList.toggle('hidden-by-role', !visible);
+  });
+}
 
 function setBusy(isBusy) {
   const buttons = document.querySelectorAll('.pixel-btn');
@@ -1100,6 +1126,7 @@ async function runDemo() {
 
 state.agentId = getStoredDefaultAgentId();
 state.demoReports = getStoredDemoReports();
+applyAdminPanelVisibility();
 renderDemoReportHistory();
 refreshYieldRateConfig().catch(() => {});
 

@@ -1958,3 +1958,8 @@ input,
 .modal {
   background: rgba(7, 12, 28, 0.95) !important;
 }
+
+/* Admin visibility gates */
+.hidden-by-role {
+  display: none !important;
+}

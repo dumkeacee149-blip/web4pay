@@ -78,7 +78,7 @@
       </div>
     </section>
 
-    <section class="card runcard">
+    <section class="card runcard demo-admin-only">
       <h2>🚀 一键演示</h2>
       <p class="help">点击后自动执行：检查链路 → 创建 Agent → 创建 Quote → 创建 Escrow → 标记入金 → Release。</p>
       <div class="row" style="grid-template-columns: 1fr 1fr;">
@@ -101,7 +101,7 @@
       <div class="toast" id="resultToast" role="status" aria-live="polite">空闲</div>
     </section>
 
-    <section class="card status-board">
+    <section class="card status-board demo-admin-only">
       <h2>📊 流程状态看板</h2>
       <div class="status-track" aria-hidden="true">
         <div id="statusFill" class="status-fill"></div>
@@ -179,7 +179,7 @@
         <pre id="escrowInfo" class="code">还没创建 escrow</pre>
       </article>
 
-      <article class="card full">
+      <article class="card full demo-admin-only">
         <h2>🎮 Event log</h2>
         <div class="row">
           <button id="clearLog" class="pixel-btn">清空日志</button>
@@ -194,7 +194,7 @@
   <div class="pixel-orb" aria-hidden="true"></div>
 </main>
 
-  <div class="mobile-actions">
+  <div class="mobile-actions demo-admin-only">
     <button id="runDemoMobile" class="pixel-btn">一键演示</button>
     <button id="refreshState" class="pixel-btn warn">刷新状态</button>
   </div>
