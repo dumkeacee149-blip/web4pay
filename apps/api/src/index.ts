@@ -190,6 +190,76 @@ async function main() {
     };
   });
 
+  // POST /v1/agents/:agentId/yield/withdraw
+  app.post("/v1/agents/:agentId/yield/withdraw", async (request, reply) => {
+    requireAgentActor(request);
+
+    return await withIdempotency(request, reply, async () => {
+      const baseLaunched = ["1", "true", "yes"].includes((process.env.BASE_LAUNCHED ?? "0").trim().toLowerCase());
+      if (!baseLaunched) {
+        throw new ApiError(409, "Yield is not redeemable yet", {
+          code: "yield_not_redeemable",
+          detail: "Base launch has not happened yet",
+        });
+      }
+
+      const agentIdRaw = (request.params as any).agentId as string;
+      const agentId = agentIdRaw.replace(/^ag_/, "");
+      // ensure agent exists under tenant
+      await getAgentRow(request.tenantId, agentIdRaw);
+
+      const body = (request.body ?? {}) as any;
+      const hasAmount = body.amount !== undefined && body.amount !== null && String(body.amount).trim() !== "";
+
+      const currentRes = await pool.query<{
+        amount_numeric: string;
+        token_symbol: string;
+      }>(
+        "select amount_numeric, token_symbol from yield_balances where tenant_id = $1 and agent_id = $2 and token_symbol = 'YIELD'",
+        [request.tenantId, agentId],
+      );
+
+      const current = currentRes.rows[0];
+      if (!current || Number(current.amount_numeric) <= 0) {
+        throw new ApiError(409, "Insufficient yield balance", {
+          code: "insufficient_balance",
+        });
+      }
+
+      const withdrawAmount = hasAmount ? requireAmount(body.amount) : String(current.amount_numeric);
+      if (Number(withdrawAmount) <= 0 || Number(withdrawAmount) > Number(current.amount_numeric)) {
+        throw new ApiError(409, "Insufficient yield balance", {
+          code: "insufficient_balance",
+          detail: "withdraw amount exceeds available YIELD",
+        });
+      }
+
+      const updated = await pool.query<{ amount_numeric: string }>(
+        "update yield_balances set amount_numeric = amount_numeric - $3 where tenant_id = $1 and agent_id = $2 and token_symbol = 'YIELD' and amount_numeric >= $3 returning amount_numeric",
+        [request.tenantId, agentId, withdrawAmount],
+      );
+
+      if ((updated.rowCount ?? 0) === 0) {
+        throw new ApiError(409, "Insufficient yield balance", {
+          code: "insufficient_balance",
+        });
+      }
+
+      await pool.query(
+        "insert into yield_ledger (tenant_id, agent_id, escrow_id, action, amount_numeric, token_symbol, source_currency, exchange_rate, tx_hash, meta) values ($1, $2, null, 'BURN', $3, 'YIELD', 'USDC', 1, null, $4)",
+        [request.tenantId, agentId, withdrawAmount, JSON.stringify({ reason: 'redeem after base launch' })],
+      );
+
+      return {
+        agentId: agentIdRaw,
+        tokenSymbol: "YIELD",
+        withdrawnAmount: withdrawAmount,
+        remainingBalance: String(updated.rows[0]!.amount_numeric),
+        redeemed: true,
+      };
+    });
+  });
+
   // GET /v1/agents/:agentId
   app.get("/v1/agents/:agentId", async (request) => {
     const agentId = (request.params as any).agentId as string;
