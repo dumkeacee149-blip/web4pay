@@ -1987,3 +1987,67 @@ input,
   filter: none !important;
   animation: none !important;
 }
+
+/* ===== style callback: neon cyberpunk + retrofuture cartoon ===== */
+body {
+  background:
+    radial-gradient(circle at 15% 8%, rgba(102, 229, 255, 0.16), transparent 26%),
+    radial-gradient(circle at 85% 12%, rgba(255, 121, 216, 0.14), transparent 28%),
+    linear-gradient(180deg, #121d3f 0%, #101a38 45%, #0f1b3b 100%) !important;
+}
+
+.hero,
+.card,
+.status-board,
+.runcard {
+  box-shadow: 0 0 0 1px rgba(142, 221, 255, 0.18) inset, 0 0 14px rgba(77, 180, 255, 0.16) !important;
+}
+
+.hero-copy h1 {
+  background: linear-gradient(180deg, #6d3a18, #4e2710) !important;
+  color: #ffe1a8 !important;
+  border-color: #ffbe7c !important;
+  text-shadow: 0 0 6px rgba(255, 195, 130, 0.35) !important;
+}
+
+.sub {
+  color: #9ac6f2 !important;
+  text-shadow: 0 0 4px rgba(129, 193, 255, 0.28) !important;
+}
+
+.hero-badges span,
+.badges span {
+  background: linear-gradient(180deg, #0f2347, #0b1a35) !important;
+  color: #bcecff !important;
+  border-color: #6ce0ff !important;
+}
+
+.market-scene,
+.scene-core {
+  box-shadow: 0 0 16px rgba(92, 231, 255, 0.2) !important;
+}
+
+.pixel-btn {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15), 2px 2px 0 #071127, 0 0 8px rgba(84, 226, 255, 0.3) !important;
+}
+
+.pixel-btn.accent {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 2px 2px 0 #2b0c25, 0 0 8px rgba(255, 121, 216, 0.3) !important;
+}
+
+.pixel-btn.warn {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 2px 2px 0 #2d1f04, 0 0 8px rgba(255, 208, 110, 0.28) !important;
+}
+
+.card h2 {
+  color: #a8ebff !important;
+  text-shadow: 0 0 6px rgba(97, 212, 255, 0.32) !important;
+}
+
+/* keep pixel structure but avoid over-harsh flatness */
+.code,
+.toast,
+.status-summary,
+.stepper span {
+  text-shadow: 0 0 2px rgba(120, 196, 255, 0.22) !important;
+}
