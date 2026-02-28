@@ -1246,3 +1246,169 @@ input, .code, .status-summary, .report-list {
   border-color: #66e2ff;
   box-shadow: 0 0 0 2px #102646 inset, 0 0 20px rgba(89, 246, 255, 0.3), 6px 6px 0 #030914;
 }
+
+/* ===== Prompt-faithful market illustration block ===== */
+.market-scene {
+  overflow: hidden;
+  padding: 12px;
+  min-height: 260px;
+  position: relative;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(49, 210, 216, 0.18), transparent 36%),
+    radial-gradient(circle at 76% 22%, rgba(255, 128, 77, 0.14), transparent 30%),
+    linear-gradient(180deg, #0c1230 0%, #12153a 50%, #18113b 100%);
+}
+
+.scene-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .28;
+  background:
+    repeating-linear-gradient(90deg, rgba(92, 151, 255, .22) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(0deg, rgba(92, 151, 255, .15) 0 1px, transparent 1px 24px);
+}
+
+.scene-core {
+  position: relative;
+  min-height: 230px;
+  border: 2px solid #3c6aca;
+  padding: 12px;
+  background: rgba(4, 9, 23, 0.55);
+}
+
+.scene-sign {
+  position: absolute;
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 2px solid #ffb061;
+  background: rgba(40, 18, 8, 0.8);
+  color: #ffd38f;
+  text-shadow: 0 0 8px rgba(255, 176, 97, .75);
+  box-shadow: 0 0 12px rgba(255, 143, 73, .45);
+}
+
+.scene-sign.top { top: 10px; left: 50%; transform: translateX(-50%); }
+.scene-sign.left { left: 10px; bottom: 12px; border-color: #63e3ff; color: #94f0ff; background: rgba(8, 26, 40, .8); }
+.scene-sign.right { right: 10px; bottom: 12px; border-color: #ff76da; color: #ffb0e8; background: rgba(41, 12, 38, .72); }
+
+.code-screen {
+  width: min(68%, 640px);
+  margin: 26px auto 0;
+  min-height: 126px;
+  border: 3px solid #62ddff;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(15, 64, 120, .95), rgba(10, 35, 78, .95));
+  box-shadow: 0 0 20px rgba(98, 221, 255, .35);
+}
+
+.code-title {
+  color: #9ceeff;
+  font-size: clamp(14px, 2.1vw, 26px);
+  text-align: center;
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(95, 238, 255, .8);
+}
+
+.code-lines {
+  color: #7ff2bc;
+  font-size: 11px;
+  margin: 4px 0;
+}
+
+.thumb {
+  margin-top: 8px;
+  color: #ffe596;
+  font-size: 12px;
+}
+
+.cashier-bot,
+.mini-bot {
+  position: absolute;
+  image-rendering: pixelated;
+  border: 2px solid #68deed;
+}
+
+.cashier-bot {
+  left: 14px;
+  top: 62px;
+  width: 114px;
+  height: 132px;
+  background: linear-gradient(180deg, #206e78, #16404d);
+  box-shadow: 0 0 14px rgba(68, 235, 224, .45);
+}
+
+.cashier-bot .eye {
+  position: absolute;
+  top: 38px;
+  width: 11px;
+  height: 11px;
+  background: #ffd978;
+}
+.cashier-bot .eye.l { left: 28px; }
+.cashier-bot .eye.r { right: 28px; }
+.cashier-bot .mouth {
+  position: absolute;
+  width: 42px;
+  height: 8px;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: #62f0ff;
+}
+
+.mini-bot {
+  right: 22%;
+  top: 96px;
+  width: 74px;
+  height: 90px;
+  border-color: #ffb162;
+  background: linear-gradient(180deg, #9b633b, #6a3d1f);
+  box-shadow: 0 0 14px rgba(255, 165, 93, .4);
+}
+
+.mini-bot .antenna {
+  position: absolute;
+  left: 33px;
+  top: -13px;
+  width: 6px;
+  height: 11px;
+  background: #ffe18e;
+}
+
+.mini-bot .face {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 20px;
+  height: 25px;
+  border: 2px solid #ffe8a6;
+  background: #20344a;
+}
+
+.mini-bot .wallet {
+  position: absolute;
+  left: -16px;
+  bottom: 8px;
+  width: 26px;
+  height: 22px;
+  line-height: 20px;
+  text-align: center;
+  border: 2px solid #67dbff;
+  color: #7feaff;
+  background: #11325a;
+}
+
+@media (max-width: 820px) {
+  .code-screen { width: calc(100% - 120px); margin-left: 98px; }
+  .mini-bot { right: 12px; }
+}
+
+@media (max-width: 620px) {
+  .market-scene { min-height: 210px; }
+  .scene-core { min-height: 186px; }
+  .cashier-bot { width: 78px; height: 94px; top: 68px; }
+  .mini-bot { width: 58px; height: 72px; top: 98px; }
+  .code-screen { width: calc(100% - 82px); margin: 34px 0 0 86px; min-height: 96px; }
+  .scene-sign { font-size: 10px; }
+}
