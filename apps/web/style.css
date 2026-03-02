@@ -2350,3 +2350,64 @@ input {
   .badges span { font-size: 8px !important; }
   .pixel-btn { font-size: 8px !important; }
 }
+
+
+/* ===== Lobster auto-trade page ===== */
+.lobster-console { max-width: 1080px; }
+
+.lobster-console .lobster-avatar {
+  width: 86px;
+  height: 86px;
+  border: 3px solid #ff74c3;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 42px;
+  background: #0f1a26;
+  box-shadow: 0 0 0 2px #ff74c3aa inset, 0 0 24px #ff74c3aa;
+  text-shadow: 0 0 10px rgba(255, 116, 195, 0.8);
+  image-rendering: pixelated;
+}
+
+.lobster-return { min-width: 150px; text-align: center; text-decoration: none; white-space: nowrap; }
+
+.lobster-hero { min-height: 106px; }
+
+#lobsterSpeech {
+  position: absolute;
+  right: 18%;
+  top: 56px;
+  min-width: 220px;
+  max-width: 320px;
+  transform: translateY(-6px);
+  border: 2px solid #4ef0ff;
+  background: #0f1824;
+  color: #8ef9ff;
+  padding: 8px 10px;
+  border-radius: 3px;
+  box-shadow: 0 0 10px #4ef0ff66;
+}
+
+#lobsterSpeech.show { animation: speechPop .5s ease forwards; }
+
+@keyframes speechPop {
+  0% { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(-6px) scale(1); }
+}
+
+.lobster-console .card h2 { color: #ff82cf; }
+
+.lobster-console .help { line-height: 1.4; }
+
+.lobster-console .report-list .line {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 2px dashed #374a5d;
+}
+
+.lobster-console .report-list .meta {
+  color: #96b3c2;
+  margin-top: 5px;
+  font-size: 12px;
+}
