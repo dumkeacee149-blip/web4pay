@@ -2,6 +2,8 @@ const $ = (id) => document.getElementById(id);
 
 const STORAGE_KEY = 'web4pay_lobster_trades_v1';
 const HISTORY_LIMIT = 20;
+const BSC_MAINNET_ID = 56;
+const PANCAKE_ROUTER = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
 
 const TOKEN_LIST = {
   USDT: {
@@ -38,9 +40,6 @@ const PAIR_INPUT = {
   XVS_WBNB: { in: 'XVS', out: 'WBNB' },
 };
 
-const BSC_MAINNET_ID = 56;
-const PANCAKE_ROUTER = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
-
 const ERC20_ABI = [
   'function decimals() view returns (uint8)',
   'function balanceOf(address owner) view returns (uint256)',
@@ -63,6 +62,16 @@ const state = {
   intervalId: null,
   position: null,
   history: [],
+  runNonce: 0,
+  monitorInProgress: false,
+  lastError: '',
+};
+
+const DEFAULTS = {
+  takeProfit: 5,
+  stopLoss: 2,
+  intervalSec: 12,
+  slippageBps: 80,
 };
 
 function toast(message) {
@@ -73,24 +82,86 @@ function toast(message) {
 
 function appendLog(message) {
   const el = $('log');
+  if (!el) return;
   const now = new Date().toLocaleTimeString();
   el.textContent = `[${now}] ${message}\n${el.textContent}`;
-  el.textContent = el.textContent.slice(0, 14000);
+  el.textContent = el.textContent.slice(0, 16000);
 }
 
-function getHistory() {
+function setField(id, value) {
+  const el = $(id);
+  if (!el) return;
+  el.value = value;
+}
+
+function getField(id, fallback = '') {
+  const el = $(id);
+  return el ? String(el.value || '') : fallback;
+}
+
+function parseNum(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBigInt(v) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return window.ethers.getBigInt(v);
   } catch {
-    return [];
+    return BigInt(v);
   }
 }
 
-function saveHistory() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history.slice(0, HISTORY_LIMIT)));
+function ensureEthersLoaded() {
+  if (!window.ethers || !window.ethers.Contract) {
+    throw new Error('ethers.js 未加载成功');
+  }
+}
+
+function getToken(symbol) {
+  const token = TOKEN_LIST[symbol];
+  if (!token) throw new Error(`未知代币：${symbol}`);
+  return token;
+}
+
+function getPairConfig() {
+  const key =
+    typeof window !== 'undefined' && window.document
+      ? document.getElementById('pairSymbol')?.value || 'USDT_WBNB'
+      : 'USDT_WBNB';
+  const cfg = PAIR_INPUT[key] || PAIR_INPUT.USDT_WBNB;
+  return cfg;
+}
+
+function getInputAmountWei(tokenIn) {
+  const amount = parseNum(getField('amountIn', '10'), 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('买入金额必须大于 0');
+  }
+  return window.ethers.parseUnits(String(amount), tokenIn.decimals);
+}
+
+function parsePercent(value, fallback) {
+  const v = parseNum(value, fallback);
+  if (v <= 0 || v >= 1000) throw new Error('百分比参数不合理（应 >0 且 <1000）');
+  return v;
+}
+
+function normalizeAddress(addr) {
+  return String(addr || '').toLowerCase();
+}
+
+function nowPlusMinutes(mins = 10) {
+  return Math.floor(Date.now() / 1000) + Math.max(1, Math.floor(mins * 60));
+}
+
+function computePnlPercent(entryValue, currentValue) {
+  if (!Number.isFinite(entryValue) || entryValue <= 0) return 0;
+  return Number((((currentValue - entryValue) / entryValue) * 100).toFixed(4));
+}
+
+function toNumber(token, amountWei) {
+  return Number(window.ethers.formatUnits(amountWei, token.decimals));
 }
 
 function renderHistory() {
@@ -101,97 +172,86 @@ function renderHistory() {
     list.textContent = '暂无记录';
     return;
   }
-  state.history.forEach((item, idx) => {
-    const row = document.createElement('div');
-    row.className = 'line';
-    const ok = item.status === 'closed' ? '✅' : item.status === 'stopped' ? '⏹️' : '🧪';
-    row.innerHTML = `<div><strong>${ok} ${item.pair}</strong> <small>(${new Date(item.createdAt).toLocaleString()})</small></div>` +
-      `<div class="meta">PnL: ${item.pnlPct}% · entryHash: ${item.entryTx || '-'} · exitHash: ${item.exitTx || '-'} </div>`;
-    list.appendChild(row);
+
+  state.history.forEach((item) => {
+    const line = document.createElement('div');
+    line.className = 'line';
+    const status = item.status === 'closed' ? '✅' : item.status === 'stopped' ? '⏹️' : '🧪';
+    line.innerHTML = `<div><strong>${status} ${item.pair || '-'} ${item.entryMode || ''}</strong> <small>(${new Date(item.createdAt).toLocaleString()})</small></div>` +
+      `<div class="meta">PnL: ${Number(item.pnlPct || 0).toFixed(4)}% · entryTx: ${item.entryTx || '-'} · exitTx: ${item.exitTx || '-'} · reason: ${item.exitReason || '-'} </div>`;
+    list.appendChild(line);
   });
 }
 
-function pushHistory(item) {
-  state.history.unshift({ ...item, createdAt: new Date().toISOString() });
-  state.history = state.history.slice(0, HISTORY_LIMIT);
-  saveHistory();
-  renderHistory();
+function persistHistory() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history.slice(0, HISTORY_LIMIT)));
 }
 
-function updateUiPhase(text) {
-  const phase = $('phase');
-  if (phase) phase.value = text;
-}
-
-function setRunningState(isRunning) {
-  state.running = isRunning;
-  const startBtn = $('startBot');
-  const stopBtn = $('stopBot');
-  if (startBtn) startBtn.disabled = isRunning;
-  if (stopBtn) stopBtn.disabled = !isRunning;
-}
-
-function getPairConfig() {
-  const pair = (
-    typeof window !== 'undefined' && window.document
-      ? document.getElementById('pairSymbol')?.value
-      : undefined
-  ) || 'USDT_WBNB';
-  return PAIR_INPUT[pair] || PAIR_INPUT.USDT_WBNB;
-}
-
-function parseNum(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function ensureEthersLoaded() {
-  if (!window.ethers || !window.ethers.Contract) {
-    throw new Error('ethers.js 未加载成功');
+function getHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
-function getToken(symbol) {
-  return TOKEN_LIST[symbol];
+function pushHistory(item) {
+  const row = {
+    ...item,
+    createdAt: item.createdAt || new Date().toISOString(),
+  };
+  state.history.unshift(row);
+  state.history = state.history.slice(0, HISTORY_LIMIT);
+  persistHistory();
+  renderHistory();
 }
 
-function getInputAmountWei(token) {
-  const amount = parseNum($('amountIn').value, 0);
-  if (amount <= 0) throw new Error('买入金额必须大于 0');
-  return window.ethers.parseUnits(String(amount), token.decimals);
+function setRunningState(running) {
+  state.running = running;
+  const startBtn = $('startBot');
+  const stopBtn = $('stopBot');
+  if (startBtn) startBtn.disabled = running;
+  if (stopBtn) stopBtn.disabled = !running;
 }
 
-function nowPlus(minutes = 20) {
-  return Math.floor((Date.now() + minutes * 60 * 1000) / 1000);
+function updatePhase(text) {
+  setField('phase', text);
 }
 
-function computePnlPercent(entryValue, currentValue) {
-  if (!Number.isFinite(entryValue) || entryValue <= 0) return 0;
-  return Number((((currentValue - entryValue) / entryValue) * 100).toFixed(4));
-}
-
-function speech(text) {
-  const b = $('lobsterSpeech');
-  if (!b) return;
-  b.textContent = text;
-  b.hidden = false;
-  b.classList.add('show');
-  setTimeout(() => {
-    b.classList.remove('show');
-    b.hidden = true;
+function showSpeech(text) {
+  const el = $('lobsterSpeech');
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = false;
+  el.classList.add('show');
+  window.setTimeout(() => {
+    el.classList.remove('show');
+    el.hidden = true;
   }, 1400);
 }
 
-async function ensureBscWalletConnected() {
+function setPositionUi(position) {
+  if (position) {
+    setField('holdingAmount', position.holdingDisplay || '0');
+    setField('entryRate', position.entryRate ? `${position.entryRate} ${position.out} / ${position.in}` : '');
+    setField('unrealizedPnl', position.unrealizedPnl != null ? `${position.unrealizedPnl}%` : '0');
+  }
+}
+
+async function getSignerAndProvider(forceConnect = false) {
   ensureEthersLoaded();
   if (!window.ethereum || typeof window.ethereum.request !== 'function') {
     throw new Error('未检测到可用钱包（MetaMask / 兼容钱包）');
   }
 
   const provider = new window.ethers.BrowserProvider(window.ethereum);
-  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  if (!Array.isArray(accounts) || !accounts[0]) {
-    throw new Error('钱包未返回账户');
+  if (forceConnect) {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!Array.isArray(accounts) || !accounts[0]) {
+      throw new Error('钱包未返回账户');
+    }
   }
 
   const network = await provider.getNetwork();
@@ -203,7 +263,7 @@ async function ensureBscWalletConnected() {
         params: [{ chainId: `0x${BSC_MAINNET_ID.toString(16)}` }],
       });
     } catch (err) {
-      if (err.code === 4902) {
+      if (err?.code === 4902) {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{
@@ -215,64 +275,129 @@ async function ensureBscWalletConnected() {
           }],
         });
       } else {
-        throw new Error(`钱包网络切换失败：${err.message}`);
+        const msg = err?.message || 'Unknown wallet error';
+        throw new Error(`钱包网络切换失败：${msg}`);
       }
+    }
+    const afterNetwork = await provider.getNetwork();
+    if (Number(afterNetwork.chainId) !== BSC_MAINNET_ID) {
+      throw new Error(`请切换到 BSC 主网后重试（当前 chainId=${afterNetwork.chainId}）`);
     }
   }
 
   const signer = await provider.getSigner();
   const account = await signer.getAddress();
   const router = new window.ethers.Contract(PANCAKE_ROUTER, ROUTER_ABI, signer);
+
   state.provider = provider;
   state.signer = signer;
   state.account = account;
   state.chainId = BSC_MAINNET_ID;
   state.router = router;
 
-  const addrEl = $('walletAddress');
-  if (addrEl) addrEl.value = account;
+  return { provider, signer, account, router };
+}
+
+async function ensureBscWalletConnected() {
+  await getSignerAndProvider(true);
   const conn = $('connBadge');
-  if (conn) conn.textContent = `已连接：${account.slice(0, 6)}...${account.slice(-4)}`;
+  if (conn) conn.textContent = `已连接：${state.account.slice(0, 6)}...${state.account.slice(-4)}`;
+  setField('walletAddress', state.account);
   await refreshBnbBalance();
-  toast(`钱包已连接：${account}`);
+  toast(`钱包已连接：${state.account}`);
 }
 
 async function refreshBnbBalance() {
   if (!state.provider || !state.account) return;
-  const bal = await state.provider.getBalance(state.account);
-  const el = $('bnbBalance');
-  if (el) el.value = `${window.ethers.formatEther(bal)}`;
+  const balWei = await state.provider.getBalance(state.account);
+  setField('bnbBalance', `${window.ethers.formatEther(balWei)}`);
 }
 
-async function getTokenContract(token) {
+function getTokenContract(token) {
+  if (!state.signer) throw new Error('未连接钱包');
   return new window.ethers.Contract(token.address, ERC20_ABI, state.signer);
 }
 
 async function quoteExactIn(tokenIn, tokenOut, amountInWei) {
+  if (!state.router) throw new Error('路由未就绪');
   const amounts = await state.router.getAmountsOut(amountInWei, [tokenIn.address, tokenOut.address]);
   return amounts[1];
 }
 
-function toNumber(token, amountWei) {
-  return Number(window.ethers.formatUnits(amountWei, token.decimals));
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry(label, fn, retries = 2) {
+  let lastErr = null;
+  for (let i = 0; i <= retries; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i >= retries) break;
+      const backoff = 500 * Math.pow(1.8, i);
+      appendLog(`${label} 重试 ${i + 1}/${retries}: ${err.message}`);
+      await sleep(backoff);
+    }
+  }
+  throw lastErr;
+}
+
+async function getTokenBalance(token, owner) {
+  const c = getTokenContract(token);
+  return await c.balanceOf(owner);
 }
 
 async function ensureAllowance(tokenIn, amountInWei) {
-  const erc = await getTokenContract(tokenIn);
-  const allowance = await erc.allowance(state.account, PANCAKE_ROUTER);
-  if (allowance < amountInWei) {
-    appendLog(`USDT approve 中：${window.ethers.formatUnits(amountInWei, tokenIn.decimals)} ${tokenIn.symbol}`);
-    const tx = await erc.approve(PANCAKE_ROUTER, amountInWei);
-    await tx.wait();
-    appendLog('Approve 完成');
-  }
+  const contract = getTokenContract(tokenIn);
+  const allowance = await contract.allowance(state.account, PANCAKE_ROUTER);
+  if (allowance >= amountInWei) return;
+
+  appendLog(`Approve ${tokenIn.symbol}: ${window.ethers.formatUnits(amountInWei, tokenIn.decimals)}`);
+  const tx = await contract.approve(PANCAKE_ROUTER, amountInWei);
+  const rec = await tx.wait();
+  appendLog(`Approve 已确认，区块Gas: ${rec?.gasUsed ? rec.gasUsed.toString() : 'n/a'}，tx=${tx.hash}`);
 }
 
-async function executeBuy(pairCfg, amountInWei, slippageBps) {
-  const tokenIn = getToken(pairCfg.in);
-  const tokenOut = getToken(pairCfg.out);
-  const outPreview = await quoteExactIn(tokenIn, tokenOut, amountInWei);
-  const minOut = outPreview - (outPreview * BigInt(Math.floor(Number(slippageBps) || 80))) / 10000n;
+async function preflight(cfg, amountInWei) {
+  const tokenIn = getToken(cfg.in);
+  const tokenOut = getToken(cfg.out);
+
+  const [balInWei, balanceBnb, quoteWei] = await Promise.all([
+    getTokenBalance(tokenIn, state.account),
+    state.provider.getBalance(state.account),
+    quoteExactIn(tokenIn, tokenOut, amountInWei),
+  ]);
+
+  const amountInNum = toNumber(tokenIn, amountInWei);
+  const balInNum = toNumber(tokenIn, balInWei);
+  if (balInWei < amountInWei) {
+    throw new Error(`${tokenIn.symbol} 余额不足：${balInNum} < ${amountInNum}`);
+  }
+  if (quoteWei <= 0n) {
+    throw new Error('报价失败：当前池子返回 0 输出');
+  }
+
+  const minBnb = window.ethers.parseEther('0.0006');
+  if (balanceBnb < minBnb) {
+    throw new Error('BNB 余额过低，请预留 Gas 费用（建议 >= 0.0006 BNB）');
+  }
+
+  return {
+    quoteWei,
+    inBalance: balInWei,
+  };
+}
+
+async function executeBuy(cfg, amountInWei, slippageBps) {
+  const tokenIn = getToken(cfg.in);
+  const tokenOut = getToken(cfg.out);
+
+  const quoteOut = await quoteExactIn(tokenIn, tokenOut, amountInWei);
+  const _slippage = BigInt(Math.min(999, Math.max(1, Math.floor(Number(slippageBps) || 80))));
+  const minOut = quoteOut - (quoteOut * _slippage) / 10000n;
+
   await ensureAllowance(tokenIn, amountInWei);
 
   const tx = await state.router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -280,181 +405,133 @@ async function executeBuy(pairCfg, amountInWei, slippageBps) {
     minOut,
     [tokenIn.address, tokenOut.address],
     state.account,
-    nowPlus(10),
+    nowPlusMinutes(10),
     {
       gasLimit: 450000,
-      gasPrice: await state.provider.getFeeData().then((d) => d.gasPrice ?? undefined),
+      gasPrice: (await state.provider.getFeeData()).gasPrice,
     },
   );
-  const receipt = await tx.wait();
+
+  const rec = await tx.wait();
   return {
     txHash: tx.hash,
-    outQuote: outPreview,
-    gasUsed: receipt?.gasUsed ? receipt.gasUsed.toString() : '',
+    gasUsed: rec?.gasUsed?.toString() || '',
+    quoteOut,
   };
 }
 
-async function executeSell(pairCfg, amountOutWei, slippageBps) {
-  const tokenIn = getToken(pairCfg.in);
-  const tokenOut = getToken(pairCfg.out);
-  const outToIn = await quoteExactIn(tokenOut, tokenIn, amountOutWei);
-  const minIn = outToIn - (outToIn * BigInt(Math.floor(Number(slippageBps) || 80))) / 10000n;
+async function executeSell(cfg, amountToSellWei, slippageBps) {
+  const tokenIn = getToken(cfg.in);
+  const tokenOut = getToken(cfg.out);
+
+  const quoteIn = await quoteExactIn(tokenOut, tokenIn, amountToSellWei);
+  const _slippage = BigInt(Math.min(999, Math.max(1, Math.floor(Number(slippageBps) || 80))));
+  const minIn = quoteIn - (quoteIn * _slippage) / 10000n;
+
   const tx = await state.router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-    amountOutWei,
+    amountToSellWei,
     minIn,
     [tokenOut.address, tokenIn.address],
     state.account,
-    nowPlus(10),
+    nowPlusMinutes(10),
     {
       gasLimit: 450000,
-      gasPrice: await state.provider.getFeeData().then((d) => d.gasPrice ?? undefined),
+      gasPrice: (await state.provider.getFeeData()).gasPrice,
     },
   );
-  const receipt = await tx.wait();
-  return { txHash: tx.hash, gasUsed: receipt?.gasUsed ? receipt.gasUsed.toString() : '' };
+  const rec = await tx.wait();
+  return {
+    txHash: tx.hash,
+    gasUsed: rec?.gasUsed?.toString() || '',
+  };
 }
 
-function buildPairLabel(pairCfg) {
-  return `${pairCfg.in}/${pairCfg.out}`;
+async function calcHoldingValue(tokenOut, amountWei, cfg) {
+  const tokenIn = getToken(cfg.in);
+  const oneOut = window.ethers.parseUnits('1', tokenOut.decimals);
+  const inPerOut = await quoteExactIn(tokenOut, tokenIn, oneOut);
+  const holding = Number(window.ethers.formatUnits(amountWei, tokenOut.decimals));
+  const inPerOutNum = Number(window.ethers.formatUnits(inPerOut, tokenIn.decimals));
+  return holding * inPerOutNum;
 }
 
-async function readHolding(tokenOut) {
-  const outContract = await getTokenContract(tokenOut);
-  const bal = await outContract.balanceOf(state.account);
-  return bal;
-}
+async function closePositionIfNeeded(cfg, cfgs) {
+  const tokenOut = getToken(cfg.out);
+  const { takeProfitPct, stopLossPct, slippageBps, auto } = cfgs;
 
-async function valueOutInInput(tokenOutAmountWei, pairCfg) {
-  const tokenOut = getToken(pairCfg.out);
-  const tokenIn = getToken(pairCfg.in);
-  const inPerOut = await quoteExactIn(tokenOut, tokenIn, window.ethers.parseUnits('1', tokenOut.decimals));
-  return (Number(window.ethers.formatUnits(tokenOutAmountWei, tokenOut.decimals)) * Number(window.ethers.formatUnits(inPerOut, tokenIn.decimals)));
-}
+  if (!state.position || state.position.status !== 'open' || state.monitorInProgress) return;
 
-async function monitorLoop(pairCfg, stopLossPct, takeProfitPct, slippageBps) {
-  if (!state.position) return;
-  const tokenIn = getToken(pairCfg.in);
-  const tokenOut = getToken(pairCfg.out);
+  state.monitorInProgress = true;
+  try {
+    const holdingWei = await getTokenBalance(tokenOut, state.account);
+    const holdingNum = toNumber(tokenOut, holdingWei);
+    setField('holdingAmount', holdingNum.toString());
 
-  const balanceOut = await readHolding(tokenOut);
-  const holding = Number(window.ethers.formatUnits(balanceOut, tokenOut.decimals));
-  $('holdingAmount').value = holding.toString();
+    if (holdingWei <= 0n) {
+      state.position.status = 'stopped';
+      state.position.exitReason = 'empty_holding';
+      state.position.pnlPct = Number(state.position.entryValueInput ? state.position.entryValueInput : 0);
+      pushHistory(state.position);
+      stopStrategy(true);
+      return;
+    }
 
-  const currentValue = await valueOutInInput(balanceOut, pairCfg);
-  const pnlPct = computePnlPercent(state.position.entryValueInput, currentValue);
-  $('unrealizedPnl').value = `${pnlPct.toFixed(4)}%`;
-  $('livePrice').value = `${currentValue.toFixed(6)} ${tokenIn.symbol}`;
+    const currentValue = await calcHoldingValue(tokenOut, holdingWei, cfg);
+    const pnl = computePnlPercent(state.position.entryValueInput, currentValue);
+    state.position.unrealizedPnl = Number(pnl.toFixed(4));
+    setField('unrealizedPnl', `${state.position.unrealizedPnl}%`);
+    setField('livePrice', `${currentValue.toFixed(6)} ${cfg.in}`);
 
-  if (pnlPct >= takeProfitPct) {
-    toast('触发止盈，准备平仓');
-    speech('到达止盈，撤仓');
-    await closePosition(pairCfg, stopLossPct, takeProfitPct, slippageBps, true);
-  } else if (pnlPct <= -Math.abs(stopLossPct)) {
-    toast('触发止损，准备止损');
-    speech('到达止损，撤仓');
-    await closePosition(pairCfg, stopLossPct, takeProfitPct, slippageBps, true);
+    if (pnl >= takeProfitPct) {
+      appendLog(`触发止盈 ${pnl}% >= ${takeProfitPct}%`);
+      showSpeech('到达止盈，执行平仓');
+      await closePosition(cfg, slippageBps, true);
+      return;
+    }
+    if (pnl <= -Math.abs(stopLossPct)) {
+      appendLog(`触发止损 ${pnl}% <= -${Math.abs(stopLossPct)}%`);
+      showSpeech('到达止损，执行平仓');
+      await closePosition(cfg, slippageBps, true);
+      return;
+    }
+  } finally {
+    state.monitorInProgress = false;
   }
 }
 
-async function closePosition(pairCfg, stopLossPct, takeProfitPct, slippageBps, auto = true) {
-  if (!state.position) return;
+async function closePosition(cfg, slippageBps, auto = true) {
+  if (!state.position || state.position.status !== 'open') return;
 
-  const tokenOut = getToken(pairCfg.out);
-  const amountToSell = await readHolding(tokenOut);
-  const minToSell = amountToSell;
-  if (minToSell <= 0n) {
-    toast('仓位已清空，无需撤仓');
-    state.position.status = 'stopped';
-    state.position.exitReason = 'already_zero';
+  const tokenOut = getToken(cfg.out);
+  const amountToSellWei = await getTokenBalance(tokenOut, state.account);
+
+  if (amountToSellWei <= 0n) {
+    state.position.status = 'closed';
+    state.position.exitTx = '';
+    state.position.exitReason = 'zero_balance';
+    state.position.pnlPct = state.position.unrealizedPnl || 0;
     pushHistory(state.position);
     stopStrategy();
     return;
   }
 
-  const currentValue = await valueOutInInput(amountToSell, pairCfg);
-  const sell = await executeSell(pairCfg, amountToSell, slippageBps);
+  const currentValue = await calcHoldingValue(tokenOut, amountToSellWei, cfg);
+  const sell = await withRetry('平仓', () => executeSell(cfg, amountToSellWei, slippageBps));
+
   const pnl = computePnlPercent(state.position.entryValueInput, currentValue);
+
   state.position.exitTx = sell.txHash;
-  state.position.status = 'closed';
-  state.position.pnlPct = Number(pnl.toFixed(4));
-  state.position.exitValue = Number(currentValue.toFixed(6));
-  state.position.closedAt = new Date().toISOString();
+  state.position.exitValue = currentValue;
   state.position.exitReason = auto ? 'auto' : 'manual';
+  state.position.pnlPct = Number(pnl.toFixed(4));
+  state.position.status = 'closed';
+  state.position.closedAt = new Date().toISOString();
 
-  appendLog(`平仓成功: ${sell.txHash}`);
+  appendLog(`平仓成功 tx=${sell.txHash} pnl=${state.position.pnlPct}% gas=${sell.gasUsed}`);
   pushHistory(state.position);
-  renderPositionState('closed');
+  setPositionUi(state.position);
+  updatePhase('closed');
   stopStrategy();
-}
-
-async function startStrategy() {
-  try {
-    await ensureBscWalletConnected();
-  } catch (err) {
-    appendLog(`连接失败：${err.message}`);
-    toast('连接失败，不能启动策略');
-    return;
-  }
-
-  if (state.running) return;
-  const cfg = getPairConfig();
-  const amountInToken = getToken(cfg.in);
-  const amountInWei = getInputAmountWei(amountInToken);
-  const tp = parseNum($('takeProfit').value, 5);
-  const sl = parseNum($('stopLoss').value, 2);
-  const intervalSec = Math.max(4, parseInt($('intervalSec').value, 10) || 12);
-  const slippageBps = Math.max(10, parseInt($('slippageBps').value, 10) || 80);
-
-  if (tp <= 0 || sl <= 0) {
-    toast('请设置大于 0 的 TP/SL');
-    return;
-  }
-
-  setRunningState(true);
-  updateUiPhase('准备买入');
-  toast(`开始策略 ${cfg.in}/${cfg.out}`);
-  speech('开始执行，记得看好滑点');
-
-  try {
-    const inputForOne = await quoteExactIn(amountInToken, getToken(cfg.out), amountInWei);
-    const entryRate = toNumber(getToken(cfg.out), inputForOne) / parseNum($('amountIn').value, 1);
-    $('entryRate').value = `${entryRate.toFixed(8)} ${cfg.out} / ${cfg.in}`;
-
-    const buy = await executeBuy(cfg, amountInWei, slippageBps);
-    const entryValue = toNumber(getToken(cfg.in), await valueOutInInput(await readHolding(getToken(cfg.out)), cfg));
-    state.position = {
-      pair: `${cfg.in}/${cfg.out}`,
-      entryTx: buy.txHash,
-      status: 'open',
-      entryAmount: parseNum($('amountIn').value, 0),
-      entryRate,
-      entryValue,
-      entryValueInput: parseNum($('amountIn').value, 0),
-      createdAt: new Date().toISOString(),
-    };
-    renderPositionState('已买入等待触发');
-    appendLog(`买入成交: ${buy.txHash}`);
-    toast('买入完成，开始监控');
-    speech('买入完成，开始看盘');
-
-    state.intervalId = setInterval(() => {
-      monitorLoop(cfg, sl, tp, slippageBps).catch((err) => {
-        appendLog(`监控异常: ${err.message}`);
-        toast('监控异常，稍后重试');
-      });
-    }, intervalSec * 1000);
-    await monitorLoop(cfg, sl, tp, slippageBps);
-  } catch (err) {
-    toast(`启动失败: ${err.message}`);
-    appendLog(`启动失败: ${err.message}`);
-    stopStrategy(true);
-  }
-}
-
-function renderPositionState(text) {
-  updateUiPhase(text);
-  const live = $('tradeStatus');
-  if (live) live.textContent = text;
 }
 
 function stopStrategy(errorMode = false) {
@@ -462,35 +539,130 @@ function stopStrategy(errorMode = false) {
     clearInterval(state.intervalId);
     state.intervalId = null;
   }
+
   setRunningState(false);
-  if (state.position && state.position.status === 'open' && errorMode) {
+  const shouldPersist = errorMode && state.position && state.position.status === 'open';
+  if (shouldPersist) {
     state.position.status = 'stopped';
     state.position.stoppedAt = new Date().toISOString();
-    const parsedPnl = parseFloat(($('unrealizedPnl').value || '0%').replace('%', '')) || 0;
-    state.position.pnlPct = Number(parsedPnl.toFixed(4));
+    state.position.pnlPct = Number((state.position.unrealizedPnl || 0).toFixed(4));
     pushHistory(state.position);
   }
-  renderPositionState('已停止');
+
+  if (state.position && state.position.status === 'closed') {
+    setPositionUi(state.position);
+  }
+  updatePhase('已停止');
 }
 
-async function stopButtonHandler() {
+async function startStrategy() {
+  try {
+    await ensureBscWalletConnected();
+  } catch (err) {
+    appendLog(`连接失败: ${err.message}`);
+    toast('连接失败，不能启动');
+    return;
+  }
+
+  if (state.running) return;
+
+  const cfg = getPairConfig();
+  const tokenIn = getToken(cfg.in);
+  const tokenOut = getToken(cfg.out);
+
+  const amountInWei = getInputAmountWei(tokenIn);
+  const amountInDisplay = parseNum(getField('amountIn'), 10);
+  const takeProfitPct = parsePercent(getField('takeProfit'), DEFAULTS.takeProfit);
+  const stopLossPct = parsePercent(getField('stopLoss'), DEFAULTS.stopLoss);
+  const intervalSec = Math.max(4, parseInt(getField('intervalSec'), 10) || DEFAULTS.intervalSec);
+  const slippageBps = Math.max(5, Math.min(1000, parseInt(getField('slippageBps'), 10) || DEFAULTS.slippageBps));
+
+  const runId = ++state.runNonce;
+
+  setRunningState(true);
+  updatePhase('准备买入');
+  appendLog(`单边策略启动：${tokenIn.symbol}/${tokenOut.symbol}，TP=${takeProfitPct}%，SL=${stopLossPct}%`);
+  showSpeech('开始执行单边策略');
+
+  try {
+    await withRetry('预检', () => preflight(cfg, amountInWei));
+
+    const outPreview = await quoteExactIn(tokenIn, tokenOut, amountInWei);
+    const entryRate = toNumber(tokenOut, outPreview) / amountInDisplay;
+    setField('entryRate', `${entryRate.toFixed(8)} ${tokenOut.symbol}/${tokenIn.symbol}`);
+
+    const buy = await withRetry('买入', () => executeBuy(cfg, amountInWei, slippageBps));
+
+    const afterBalanceOut = await getTokenBalance(tokenOut, state.account);
+    const initialHolding = toNumber(tokenOut, afterBalanceOut);
+
+    state.position = {
+      pair: `${tokenIn.symbol}/${tokenOut.symbol}`,
+      in: tokenIn.symbol,
+      out: tokenOut.symbol,
+      entryTx: buy.txHash,
+      entryMode: 'single-direction-long',
+      status: 'open',
+      entryRate: entryRate.toFixed(8),
+      entryValueInput: amountInDisplay,
+      entryAmount: amountInDisplay,
+      holding: initialHolding,
+      holdingDisplay: String(initialHolding),
+      entryTime: new Date().toISOString(),
+      runId,
+    };
+
+    updatePhase('已买入，等待触发');
+    setField('unrealizedPnl', '0%');
+    setField('livePrice', '...');
+    appendLog(`买入已上链: ${buy.txHash}，本次消耗 gas=${buy.gasUsed || 'n/a'}`);
+
+    state.intervalId = window.setInterval(() => {
+      closePositionIfNeeded(cfg, {
+        takeProfitPct,
+        stopLossPct,
+        slippageBps,
+      }).catch((err) => {
+        state.lastError = err.message;
+        appendLog(`监控失败: ${err.message}`);
+      });
+    }, intervalSec * 1000);
+
+    // 快速首轮执行，减少初始空窗
+    await closePositionIfNeeded(cfg, {
+      takeProfitPct,
+      stopLossPct,
+      slippageBps,
+    });
+  } catch (err) {
+    toast(`启动失败: ${err.message}`);
+    appendLog(`启动失败: ${err.message}`);
+    stopStrategy(true);
+  }
+}
+
+function stopButtonHandler() {
   if (!state.position || state.position.status !== 'open') {
     stopStrategy();
     return;
   }
-  toast('手动停止，尝试收口持仓为主动停止（不强平）');
-  stopStrategy();
+  appendLog('手动停止：保留当前仓位，停止监听');
+  stopStrategy(true);
 }
 
 function clearLog() {
-  const log = $('log');
-  if (log) log.textContent = '';
+  const el = $('log');
+  if (el) el.textContent = '';
 }
 
 function copyLog() {
-  const log = $('log');
-  if (!log) return;
-  navigator.clipboard.writeText(log.textContent || '').then(() => {
+  const el = $('log');
+  if (!el) return;
+  if (!navigator?.clipboard?.writeText) {
+    toast('当前浏览器不支持复制');
+    return;
+  }
+  navigator.clipboard.writeText(el.textContent || '').then(() => {
     toast('日志已复制');
   }).catch(() => {
     toast('复制失败');
@@ -502,36 +674,34 @@ function disconnectWallet() {
   state.signer = null;
   state.account = '';
   state.router = null;
-  const addr = $('walletAddress');
+  state.chainId = 0;
+  setField('walletAddress', '');
+  setField('bnbBalance', '');
   const conn = $('connBadge');
-  const b = $('bnbBalance');
-  if (addr) addr.value = '';
-  if (b) b.value = '';
   if (conn) conn.textContent = '未连接';
-  toast('钱包断开（刷新可重新连接）');
+  toast('钱包断开成功（刷新可重新连接）');
 }
 
 function init() {
-  const startBtn = $('startBot');
-  const stopBtn = $('stopBot');
-  const connectBtn = $('connectWallet');
-  const disconnectBtn = $('disconnectWallet');
-  const clearBtn = $('clearLog');
-  const copyBtn = $('copyLog');
-
   state.history = getHistory();
   renderHistory();
 
-  connectBtn && connectBtn.addEventListener('click', ensureBscWalletConnected);
-  disconnectBtn && disconnectBtn.addEventListener('click', disconnectWallet);
-  startBtn && startBtn.addEventListener('click', startStrategy);
-  stopBtn && stopBtn.addEventListener('click', stopButtonHandler);
-  clearBtn && clearBtn.addEventListener('click', clearLog);
-  copyBtn && copyBtn.addEventListener('click', copyLog);
+  $('connectWallet')?.addEventListener('click', ensureBscWalletConnected);
+  $('disconnectWallet')?.addEventListener('click', disconnectWallet);
+  $('startBot')?.addEventListener('click', startStrategy);
+  $('stopBot')?.addEventListener('click', stopButtonHandler);
+  $('clearLog')?.addEventListener('click', clearLog);
+  $('copyLog')?.addEventListener('click', copyLog);
+
+  setField('amountIn', getField('amountIn', '10') || '10');
+  setField('takeProfit', getField('takeProfit', String(DEFAULTS.takeProfit)) || String(DEFAULTS.takeProfit));
+  setField('stopLoss', getField('stopLoss', String(DEFAULTS.stopLoss)) || String(DEFAULTS.stopLoss));
+  setField('intervalSec', getField('intervalSec', String(DEFAULTS.intervalSec)) || String(DEFAULTS.intervalSec));
+  setField('slippageBps', getField('slippageBps', String(DEFAULTS.slippageBps)) || String(DEFAULTS.slippageBps));
 
   setRunningState(false);
-  updateUiPhase('待启动');
-  toast('自动交易面板已就绪');
+  updatePhase('待启动');
+  toast('自动交易页面就绪（单向长线：买入后等待 TP/SL）');
 }
 
 window.addEventListener('DOMContentLoaded', init);
