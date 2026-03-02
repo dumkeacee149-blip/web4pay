@@ -52,14 +52,6 @@ const ROUTER_ABI = [
   'function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external',
 ];
 
-const DEFAULTS = {
-  takeProfit: 5,
-  stopLoss: 2,
-  intervalSec: 12,
-  slippageBps: 80,
-  maxHoldMinutes: 120,
-};
-
 const state = {
   provider: null,
   signer: null,
@@ -73,19 +65,14 @@ const state = {
   runNonce: 0,
   monitorInProgress: false,
   lastError: '',
-  consecutiveErrors: 0,
-  cooldownUntil: 0,
-  maxHoldMinutes: DEFAULTS.maxHoldMinutes,
 };
 
-
-const COOLDOWN_MS_STEPS = [
-  30_000,
-  60_000,
-  120_000,
-  120_000,
-];
-const MAX_WATCHDOG_ERRORS = 5;
+const DEFAULTS = {
+  takeProfit: 5,
+  stopLoss: 2,
+  intervalSec: 12,
+  slippageBps: 80,
+};
 
 function toast(message) {
   const badge = $('tradeStatus');
@@ -243,35 +230,6 @@ function showSpeech(text) {
     el.classList.remove('show');
     el.hidden = true;
   }, 1400);
-}
-
-
-function computeNextCooldownMs() {
-  const idx = Math.max(0, Math.min(state.consecutiveErrors - 1, COOLDOWN_MS_STEPS.length - 1));
-  return COOLDOWN_MS_STEPS[idx] || 120_000;
-}
-
-function clearWatchdogIfExpired() {
-  if (!state.position || state.position.status !== "open") return false;
-  if (!state.position.entryTime) return false;
-  const holdMinutes = parseNum(getField('maxHoldMinutes', String(state.maxHoldMinutes || DEFAULTS.maxHoldMinutes)), DEFAULTS.maxHoldMinutes);
-  const now = Date.now();
-  const start = new Date(state.position.entryTime).getTime();
-  if (!Number.isFinite(start)) return false;
-  return (now - start) >= holdMinutes * 60 * 1000;
-}
-
-function stopByWatchdog() {
-  if (!state.position || state.position.status !== 'open') return;
-  appendLog('任务看门狗触发：持仓超时，自动停机');
-  state.position.exitReason = 'watchdog_timeout';
-  stopStrategy(true, 'watchdog_timeout');
-  showSpeech('持仓超时，任务自动停机');
-}
-
-function markMonitorRecovered() {
-  state.consecutiveErrors = 0;
-  state.cooldownUntil = 0;
 }
 
 function setPositionUi(position) {
@@ -505,11 +463,6 @@ async function closePositionIfNeeded(cfg, cfgs) {
 
   state.monitorInProgress = true;
   try {
-    if (clearWatchdogIfExpired()) {
-      stopByWatchdog();
-      return;
-    }
-
     const holdingWei = await getTokenBalance(tokenOut, state.account);
     const holdingNum = toNumber(tokenOut, holdingWei);
     setField('holdingAmount', holdingNum.toString());
@@ -519,14 +472,13 @@ async function closePositionIfNeeded(cfg, cfgs) {
       state.position.exitReason = 'empty_holding';
       state.position.pnlPct = Number(state.position.entryValueInput ? state.position.entryValueInput : 0);
       pushHistory(state.position);
-      stopStrategy(true, 'manual');
+      stopStrategy(true);
       return;
     }
 
     const currentValue = await calcHoldingValue(tokenOut, holdingWei, cfg);
     const pnl = computePnlPercent(state.position.entryValueInput, currentValue);
     state.position.unrealizedPnl = Number(pnl.toFixed(4));
-    markMonitorRecovered();
     setField('unrealizedPnl', `${state.position.unrealizedPnl}%`);
     setField('livePrice', `${currentValue.toFixed(6)} ${cfg.in}`);
 
@@ -582,7 +534,7 @@ async function closePosition(cfg, slippageBps, auto = true) {
   stopStrategy();
 }
 
-function stopStrategy(errorMode = false, reason = 'manual') {
+function stopStrategy(errorMode = false) {
   if (state.intervalId) {
     clearInterval(state.intervalId);
     state.intervalId = null;
@@ -594,7 +546,6 @@ function stopStrategy(errorMode = false, reason = 'manual') {
     state.position.status = 'stopped';
     state.position.stoppedAt = new Date().toISOString();
     state.position.pnlPct = Number((state.position.unrealizedPnl || 0).toFixed(4));
-    state.position.exitReason = reason || 'manual';
     pushHistory(state.position);
   }
 
@@ -625,13 +576,8 @@ async function startStrategy() {
   const stopLossPct = parsePercent(getField('stopLoss'), DEFAULTS.stopLoss);
   const intervalSec = Math.max(4, parseInt(getField('intervalSec'), 10) || DEFAULTS.intervalSec);
   const slippageBps = Math.max(5, Math.min(1000, parseInt(getField('slippageBps'), 10) || DEFAULTS.slippageBps));
-  const maxHoldMinutes = Math.max(1, parseInt(getField('maxHoldMinutes'), 10) || DEFAULTS.maxHoldMinutes);
-  state.maxHoldMinutes = maxHoldMinutes;
 
   const runId = ++state.runNonce;
-  state.consecutiveErrors = 0;
-  state.cooldownUntil = 0;
-
 
   setRunningState(true);
   updatePhase('准备买入');
@@ -657,7 +603,6 @@ async function startStrategy() {
       entryTx: buy.txHash,
       entryMode: 'single-direction-long',
       status: 'open',
-      maxHoldMinutes,
       entryRate: entryRate.toFixed(8),
       entryValueInput: amountInDisplay,
       entryAmount: amountInDisplay,
@@ -673,30 +618,13 @@ async function startStrategy() {
     appendLog(`买入已上链: ${buy.txHash}，本次消耗 gas=${buy.gasUsed || 'n/a'}`);
 
     state.intervalId = window.setInterval(() => {
-      const now = Date.now();
-      if (state.cooldownUntil && now < state.cooldownUntil) {
-        const remain = Math.max(1, Math.ceil((state.cooldownUntil - now) / 1000));
-        setField('phase', `监控退避中 ${remain}s`);
-        return;
-      }
       closePositionIfNeeded(cfg, {
         takeProfitPct,
         stopLossPct,
         slippageBps,
       }).catch((err) => {
-        state.consecutiveErrors += 1;
         state.lastError = err.message;
-        appendLog(`监控失败 (${state.consecutiveErrors}/${MAX_WATCHDOG_ERRORS}): ${err.message}`);
-        showSpeech(`监控异常 ${state.consecutiveErrors}/${MAX_WATCHDOG_ERRORS}`);
-
-        if (state.consecutiveErrors >= MAX_WATCHDOG_ERRORS) {
-          stopStrategy(true, 'monitor_error');
-          return;
-        }
-
-        const delay = computeNextCooldownMs();
-        state.cooldownUntil = now + delay;
-        appendLog(`进入重试退避 ${delay / 1000}s`);
+        appendLog(`监控失败: ${err.message}`);
       });
     }, intervalSec * 1000);
 
@@ -709,7 +637,7 @@ async function startStrategy() {
   } catch (err) {
     toast(`启动失败: ${err.message}`);
     appendLog(`启动失败: ${err.message}`);
-    stopStrategy(true, 'manual');
+    stopStrategy(true);
   }
 }
 
@@ -719,7 +647,7 @@ function stopButtonHandler() {
     return;
   }
   appendLog('手动停止：保留当前仓位，停止监听');
-  stopStrategy(true, 'manual');
+  stopStrategy(true);
 }
 
 function clearLog() {
@@ -747,8 +675,6 @@ function disconnectWallet() {
   state.account = '';
   state.router = null;
   state.chainId = 0;
-  state.consecutiveErrors = 0;
-  state.cooldownUntil = 0;
   setField('walletAddress', '');
   setField('bnbBalance', '');
   const conn = $('connBadge');
@@ -772,7 +698,6 @@ function init() {
   setField('stopLoss', getField('stopLoss', String(DEFAULTS.stopLoss)) || String(DEFAULTS.stopLoss));
   setField('intervalSec', getField('intervalSec', String(DEFAULTS.intervalSec)) || String(DEFAULTS.intervalSec));
   setField('slippageBps', getField('slippageBps', String(DEFAULTS.slippageBps)) || String(DEFAULTS.slippageBps));
-  setField('maxHoldMinutes', getField('maxHoldMinutes', String(DEFAULTS.maxHoldMinutes)) || String(DEFAULTS.maxHoldMinutes));
 
   setRunningState(false);
   updatePhase('待启动');
